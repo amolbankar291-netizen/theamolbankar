@@ -3,6 +3,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import suvUrl from './suv.glb?url';
 import {
   CARS,
   buildTrafficCar,
@@ -298,21 +300,74 @@ const flameMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.9
 });
+// Real 3D car models (CC0). Loaded on top of the procedural fallback.
+const gltfLoader = new GLTFLoader();
+const CAR_MODELS = { fortuner: suvUrl };
+let loadToken = 0;
+
+/** Tint the largest mesh (the body) of a loaded model and enable shadows. */
+function applyModelBodyColor(root, hex) {
+  let biggest = null;
+  let biggestVol = -1;
+  const s = new THREE.Vector3();
+  root.traverse((o) => {
+    if (o.isMesh && o.geometry) {
+      o.castShadow = true;
+      o.geometry.computeBoundingBox();
+      o.geometry.boundingBox.getSize(s);
+      const vol = s.x * s.y * s.z;
+      if (vol > biggestVol) {
+        biggestVol = vol;
+        biggest = o;
+      }
+    }
+  });
+  if (biggest && biggest.material) {
+    biggest.material = biggest.material.clone();
+    if (biggest.material.color) biggest.material.color = new THREE.Color(hex);
+    if ('metalness' in biggest.material) biggest.material.metalness = 0.5;
+    if ('roughness' in biggest.material) biggest.material.roughness = 0.35;
+    if ('envMapIntensity' in biggest.material) biggest.material.envMapIntensity = 1.4;
+  }
+}
+
+/** Normalise a loaded model to game scale, sit it on the road, find wheels. */
+function configureCarModel(root, hex) {
+  let box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const longest = Math.max(size.x, size.z) || 1;
+  root.scale.setScalar(4.7 / longest);
+  box = new THREE.Box3().setFromObject(root);
+  const c = box.getCenter(new THREE.Vector3());
+  root.position.x -= c.x;
+  root.position.z -= c.z;
+  root.position.y -= box.min.y; // rest wheels on wrapper's y=0
+  applyModelBodyColor(root, hex);
+  const wheels = [];
+  root.traverse((o) => {
+    if (o.isMesh && /wheel|tire|tyre/i.test(o.name)) wheels.push(o);
+  });
+  return wheels;
+}
+
 function loadSelectedCar() {
   scene.remove(player);
   playerStats = CARS.find((c) => c.id === save.selected) || CARS[0];
-  const built = playerStats.build(carColor(playerStats.id));
-  // Models are authored with the front at +Z; the car travels toward -Z,
-  // so wrap the body in a container rotated 180° and steer the container.
-  const body = built.group;
-  body.rotation.y = Math.PI;
+  const hex = carColor(playerStats.id);
   player = new THREE.Group();
-  player.add(body);
   player.position.set(lanePositions[1], 0.55, 0);
   scene.add(player);
+
+  // Procedural body first — instant, and the safe fallback if a model fails.
+  const built = playerStats.build(hex);
+  const body = built.group;
+  body.rotation.y = Math.PI;
+  player.add(body);
   playerWheels = built.wheels;
   player.userData.headlights = body.userData.headlights;
   player.userData.windshield = body.userData.windshield;
+  player.userData.body = body;
+
   // Exhaust nitro flame at the rear (world +Z when facing -Z)
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 10), flameMat);
   flame.rotation.x = Math.PI / 2;
@@ -334,6 +389,37 @@ function loadSelectedCar() {
   const glow = new THREE.PointLight(0xffffff, 0.7, 26, 2);
   glow.position.set(0, 4, 3);
   player.add(glow);
+
+  // Upgrade to a real 3D model when one exists (keeps procedural on any error).
+  const modelUrl = CAR_MODELS[playerStats.id];
+  if (modelUrl) {
+    const token = ++loadToken;
+    gltfLoader.load(
+      modelUrl,
+      (gltf) => {
+        if (token !== loadToken) return; // a newer car was picked meanwhile
+        try {
+          const root = gltf.scene;
+          const wheels = configureCarModel(root, hex);
+          const wrap = new THREE.Group();
+          wrap.add(root);
+          wrap.position.y = -0.45;
+          wrap.rotation.y = Math.PI; // face travel direction (-Z)
+          if (player.userData.body) player.remove(player.userData.body);
+          player.add(wrap);
+          player.userData.body = wrap;
+          player.userData.windshield = null;
+          if (wheels.length) playerWheels = wheels;
+        } catch (_) {
+          /* keep the procedural car */
+        }
+      },
+      undefined,
+      () => {
+        /* load failed: keep the procedural car */
+      }
+    );
+  }
 }
 
 // ---------- Object pools ----------

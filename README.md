@@ -52,8 +52,13 @@ entirely in the cloud — no Android tooling needed on your PC:
 
 ---
 
+## 🧩 Credits
+
+- Hero car uses the **"SUV" 3D model by [Quaternius](https://quaternius.com/)**, licensed **CC0 1.0 (public domain)**, via [Poly Pizza](https://poly.pizza/m/xsMtZhBkxL). Free for commercial use, no attribution required — credited here anyway.
+
 ## ✨ Features
 
+- 🚗 **Real 3D car model** (GLB) for the hero car — with an automatic procedural fallback
 - 🚙 **Toyota-Fortuner-Legender-style hero SUV** with black two-tone roof & black alloys
 - 🎨 **Body-colour picker** — 12 finishes (Pearl White, Jet Black, Gunmetal, Racing Red, Electric Blue, and more)
 - 🗺️ **7 selectable tracks/terrains** — City Highway, Open Highway, Jungle, Desert Hills, Mud Trail, Ice Pass & All-Terrain
