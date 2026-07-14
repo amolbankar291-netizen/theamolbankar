@@ -591,6 +591,77 @@ body {
   margin-bottom: 6px;
 }
 
+/* ---------- View toggle button ---------- */
+.btn-view {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 12px;
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(11, 16, 32, 0.55);
+  color: var(--text);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-view:active {
+  transform: scale(0.95);
+}
+
+/* ---------- Cockpit (sit-inside) overlay ---------- */
+.cockpit {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+.cockpit .pillar {
+  position: absolute;
+  top: 0;
+  width: 20vw;
+  height: 78%;
+  background: linear-gradient(180deg, #0a0c12, #14171f);
+}
+.cockpit .pillar.left {
+  left: 0;
+  transform-origin: top left;
+  clip-path: polygon(0 0, 55% 0, 30% 100%, 0 100%);
+}
+.cockpit .pillar.right {
+  right: 0;
+  clip-path: polygon(45% 0, 100% 0, 100% 100%, 70% 100%);
+}
+.cockpit .roof {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12%;
+  background: linear-gradient(180deg, #0a0c12 40%, rgba(10, 12, 18, 0));
+}
+.cockpit .dash {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  background: linear-gradient(180deg, rgba(10, 12, 18, 0), #0b0d13 45%, #05070c);
+  border-top: 2px solid rgba(255, 255, 255, 0.05);
+}
+.cockpit .wheel {
+  position: absolute;
+  bottom: -7%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(60vw, 340px);
+  height: min(60vw, 340px);
+  filter: drop-shadow(0 -6px 20px rgba(0, 0, 0, 0.6));
+  transition: transform 0.05s linear;
+}
+
 /* Hide touch controls on devices with a real pointer/keyboard */
 @media (hover: hover) and (pointer: fine) {
   #touch-controls {

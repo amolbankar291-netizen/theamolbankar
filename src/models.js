@@ -97,11 +97,23 @@ export function buildFortuner(color = 0xffffff) {
     bar.position.set(0, 0.02 + i * 0.12, 2.34);
     car.add(bar);
   }
-  const glass = GLASS();
-  const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.55, 0.08), glass);
+  // Clearer tinted windshield (stored so cockpit view can hide it)
+  const windMat = new THREE.MeshPhysicalMaterial({
+    color: 0x2a3a52,
+    metalness: 0.1,
+    roughness: 0.05,
+    transmission: 0.6,
+    transparent: true,
+    opacity: 0.5,
+    clearcoat: 1
+  });
+  const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.55, 0.06), windMat);
   windshield.position.set(0, 0.75, 1.12);
   windshield.rotation.x = -0.32;
   car.add(windshield);
+  car.userData.windshield = windshield;
+
+  const glass = GLASS();
   const rear = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.5, 0.08), glass);
   rear.position.set(0, 0.75, -1.42);
   rear.rotation.x = 0.34;
@@ -111,6 +123,60 @@ export function buildFortuner(color = 0xffffff) {
     sg.position.set(side * 0.83, 0.75, -0.15);
     car.add(sg);
   }
+
+  // Wheel arches (dark cladding)
+  const archMat = new THREE.MeshStandardMaterial({ color: 0x14161c, roughness: 0.9 });
+  for (const z of [1.45, -1.45]) {
+    for (const side of [-1, 1]) {
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 6, 12, Math.PI), archMat);
+      arch.position.set(side * 0.95, -0.05, z);
+      arch.rotation.y = Math.PI / 2;
+      car.add(arch);
+    }
+  }
+
+  // Side mirrors
+  const mirrorArmMat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.4, roughness: 0.4 });
+  const mirrorGlassMat = new THREE.MeshStandardMaterial({ color: 0x9fb4d0, metalness: 0.9, roughness: 0.1 });
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.12), mirrorArmMat);
+    arm.position.set(side * 1.02, 0.62, 1.0);
+    car.add(arm);
+    const mg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.26), mirrorGlassMat);
+    mg.position.set(side * 1.16, 0.64, 1.0);
+    car.add(mg);
+  }
+
+  // Front badge / chrome accent
+  const badge = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 0.05, 12),
+    new THREE.MeshStandardMaterial({ color: 0xd8dde3, metalness: 1, roughness: 0.2 })
+  );
+  badge.rotation.x = Math.PI / 2;
+  badge.position.set(0, 0.26, 2.36);
+  car.add(badge);
+
+  // Simple interior (seats + dashboard + steering wheel) for cockpit view
+  const interior = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.8 });
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.28, 0.5), interior);
+  dash.position.set(0, 0.42, 0.85);
+  car.add(dash);
+  for (const side of [-1, 1]) {
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), interior);
+    seat.position.set(side * 0.4, 0.35, -0.2);
+    car.add(seat);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.15), interior);
+    back.position.set(side * 0.4, 0.6, -0.45);
+    car.add(back);
+  }
+  const wheelRim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.16, 0.03, 8, 16),
+    new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.6 })
+  );
+  wheelRim.position.set(0.4, 0.5, 0.55);
+  wheelRim.rotation.x = 0.5;
+  car.add(wheelRim);
+
   addLights(car, 2.36, -2.22, 0.2);
   const wheels = makeWheels(car, 1.9, [1.45, -1.45], 0.44, -0.28);
   return { group: car, wheels };

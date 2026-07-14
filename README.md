@@ -54,6 +54,11 @@ entirely in the cloud — no Android tooling needed on your PC:
 
 ## ✨ Features
 
+- 🪟 **Cockpit (sit-inside) view** — first-person driver's seat with windshield frame,
+  dashboard and a **steering wheel that turns as you steer** (toggle Chase ⇄ Cockpit)
+- 🔍 **Working rear-view mirror** — a real live render of the traffic and **cop cars behind you**
+- 🚙 **Detailed, realistic Fortuner** — side mirrors, wheel arches, chrome badge, tinted glass,
+  interior seats, with **image-based reflections** (IBL) & filmic tone mapping
 - 🌆 **3 changing biomes** — **Neon City**, **Jungle Run**, **Desert Hills** — with unique
   scenery (buildings, palms, cacti, rocks), distant mountains, and smooth palette transitions
 - 🌈 **Neon bloom post-processing** — glowing headlights, coins, arches & boost pads

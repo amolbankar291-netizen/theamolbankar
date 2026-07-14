@@ -45,6 +45,24 @@
           <div class="nitro-label">NITRO</div>
           <div class="nitro-bar"><div id="nitro-fill" class="nitro-fill"></div></div>
         </div>
+        <button id="btn-view" class="btn-view">🎥 Chase</button>
+      </div>
+
+      <!-- Cockpit (sit-inside) overlay: windshield frame + dashboard + wheel -->
+      <div id="cockpit" class="cockpit hidden">
+        <div class="pillar left"></div>
+        <div class="pillar right"></div>
+        <div class="roof"></div>
+        <div class="dash"></div>
+        <div id="steering-wheel" class="wheel">
+          <svg viewBox="0 0 200 200" width="100%" height="100%">
+            <circle cx="100" cy="100" r="92" fill="none" stroke="#0d0f14" stroke-width="16" />
+            <circle cx="100" cy="100" r="30" fill="#15181f" stroke="#2a2e38" stroke-width="4" />
+            <rect x="92" y="100" width="16" height="70" fill="#15181f" />
+            <rect x="30" y="92" width="140" height="16" rx="8" fill="#15181f" />
+            <circle cx="100" cy="100" r="10" fill="#ff7a1a" />
+          </svg>
+        </div>
       </div>
 
       <div id="combo-popup" class="combo-popup"></div>

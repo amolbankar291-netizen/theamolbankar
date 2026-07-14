@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   CARS,
   buildTrafficCar,
@@ -89,19 +90,47 @@ const ui = {
   carList: el('car-list'),
   garageBank: el('garage-bank')
 };
+const steerWheelEl = el('steering-wheel');
 
 // ---------- Renderer / Scene / Camera ----------
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0b1020, 60, 210);
 
+// Realistic reflections for metal/glass (image-based lighting)
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 600);
 const camBase = new THREE.Vector3(0, 5.4, 10.8);
 camera.position.copy(camBase);
+camera.layers.enable(1); // layer 1 = HUD mirror plane
+scene.add(camera); // so camera-attached mirror renders
+
+// ---------- Rear-view mirror (real render of what's behind you) ----------
+const rearRT = new THREE.WebGLRenderTarget(512, 174, { samples: 0 });
+const rearCam = new THREE.PerspectiveCamera(58, 512 / 174, 0.1, 260);
+const mirrorFrame = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.12, 0.4),
+  new THREE.MeshBasicMaterial({ color: 0x05070d })
+);
+mirrorFrame.position.set(0, 0.62, -1.45);
+mirrorFrame.layers.set(1);
+camera.add(mirrorFrame);
+const mirror = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.04, 0.34),
+  new THREE.MeshBasicMaterial({ map: rearRT.texture, side: THREE.DoubleSide, toneMapped: false })
+);
+mirror.position.set(0, 0.62, -1.44);
+mirror.scale.x = -1; // mirror image
+mirror.layers.set(1);
+camera.add(mirror);
 
 // Post-processing: neon bloom
 const composer = new EffectComposer(renderer);
@@ -216,12 +245,20 @@ function loadSelectedCar() {
   scene.remove(player);
   playerStats = CARS.find((c) => c.id === save.selected) || CARS[0];
   const built = playerStats.build(playerStats.color);
-  player = built.group;
-  playerWheels = built.wheels;
+  // Models are authored with the front at +Z; the car travels toward -Z,
+  // so wrap the body in a container rotated 180° and steer the container.
+  const body = built.group;
+  body.rotation.y = Math.PI;
+  player = new THREE.Group();
+  player.add(body);
   player.position.set(lanePositions[1], 0.55, 0);
   scene.add(player);
+  playerWheels = built.wheels;
+  player.userData.headlights = body.userData.headlights;
+  player.userData.windshield = body.userData.windshield;
+  // Exhaust nitro flame at the rear (world +Z when facing -Z)
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 10), flameMat);
-  flame.rotation.x = -Math.PI / 2;
+  flame.rotation.x = Math.PI / 2;
   flame.position.set(0, 0.1, 2.6);
   flame.visible = false;
   player.add(flame);
@@ -367,6 +404,17 @@ if (!(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationE
 
 // ---------- Game state ----------
 let state = 'menu';
+let viewMode = localStorage.getItem('fr_view') || 'chase'; // 'chase' | 'cockpit'
+let steerSmooth = 0;
+function setView(v) {
+  viewMode = v;
+  localStorage.setItem('fr_view', v);
+  const cockpit = v === 'cockpit';
+  el('cockpit').classList.toggle('hidden', !cockpit);
+  if (player.userData.windshield) player.userData.windshield.visible = !cockpit;
+  const vb = el('btn-view');
+  if (vb) vb.textContent = cockpit ? '🎥 Cockpit' : '🎥 Chase';
+}
 const game = {
   speed: CONFIG.baseSpeed,
   distance: 0,
@@ -451,6 +499,7 @@ function startGame() {
   clearWorld();
   resetGameVars();
   loadSelectedCar();
+  setView(viewMode);
   state = 'playing';
   ui.menu.classList.add('hidden');
   ui.garage.classList.add('hidden');
@@ -564,6 +613,7 @@ el('btn-menu').addEventListener('click', () => {
   ui.gameover.classList.add('hidden');
   ui.menu.classList.remove('hidden');
 });
+el('btn-view').addEventListener('click', () => setView(viewMode === 'chase' ? 'cockpit' : 'chase'));
 
 // ---------- Helpers ----------
 function hits(px, pz, phw, phl, ox, oz, ohw, ohl) {
@@ -689,6 +739,8 @@ function update(dt) {
   if (input.right) dir += 1;
   if (Math.abs(input.tilt) > 0.08) dir += input.tilt;
   dir = THREE.MathUtils.clamp(dir, -1, 1);
+  steerSmooth = THREE.MathUtils.lerp(steerSmooth, dir, dt * 8);
+  if (steerWheelEl) steerWheelEl.style.transform = `translateX(-50%) rotate(${(steerSmooth * 130).toFixed(1)}deg)`;
   player.position.x = THREE.MathUtils.clamp(
     player.position.x + dir * CONFIG.steerSpeed * playerStats.handling * dt,
     -roadHalf + 1,
@@ -897,14 +949,31 @@ function updatePolice(dt, phw, phl) {
 
 function updateCamera(dt, hot) {
   const shake = hot ? 0.09 : 0.025;
-  camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
-  camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
-  camera.position.z = camBase.z;
-  camera.lookAt(player.position.x * 0.4, 1.2, -14);
   const speedT = (game.speed - CONFIG.baseSpeed) / (CONFIG.maxSpeed + CONFIG.nitroBoost - CONFIG.baseSpeed);
-  const targetFov = 64 + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
+  let baseFov;
+  if (viewMode === 'cockpit') {
+    // Sit inside: eye at the driver's seat looking down the road.
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x + 0.32, dt * 10);
+    camera.position.y = 1.28 + (Math.random() - 0.5) * shake * 0.6;
+    camera.position.z = player.position.z + 0.25;
+    camera.lookAt(player.position.x + steerSmooth * 3, 1.02, player.position.z - 26);
+    baseFov = 74;
+  } else {
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
+    camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
+    camera.position.z = camBase.z;
+    camera.lookAt(player.position.x * 0.4, 1.2, -14);
+    baseFov = 64;
+  }
+  const targetFov = baseFov + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;
   camera.updateProjectionMatrix();
+}
+
+// Rear camera follows the player, looking backward (+Z) to feed the mirror.
+function updateRearCam() {
+  rearCam.position.set(player.position.x, 1.6, player.position.z + 0.2);
+  rearCam.lookAt(player.position.x, 1.2, player.position.z + 30);
 }
 
 function updateSpeedFx(usingNitro) {
@@ -926,6 +995,12 @@ function updateHud() {
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   update(dt);
+  // Render the rear-view first into the mirror texture, then the main view.
+  updateRearCam();
+  renderer.setRenderTarget(rearRT);
+  renderer.clear();
+  renderer.render(scene, rearCam);
+  renderer.setRenderTarget(null);
   composer.render();
   requestAnimationFrame(animate);
 }
@@ -946,6 +1021,7 @@ resize();
 ui.best.textContent = save.best;
 ui.bank.textContent = save.bank;
 loadSelectedCar();
+setView(viewMode);
 applyEnvironment(1);
 for (let i = 0; i < 6; i++) {
   spawnPropRow();
