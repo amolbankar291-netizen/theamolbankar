@@ -18,6 +18,7 @@ import {
   buildArch,
   buildBillboard,
   buildBoostPad,
+  buildGuardrail,
   makeStarfield
 } from './models.js';
 import { AudioKit } from './audio.js';
@@ -201,7 +202,7 @@ const roadTex = makeRoadTexture();
 roadTex.repeat.set(1, CONFIG.roadLength / 16);
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(roadHalf * 2 + 1, CONFIG.roadLength),
-  new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.8 })
+  new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.5, metalness: 0.25, envMapIntensity: 0.6 })
 );
 road.rotation.x = -Math.PI / 2;
 road.position.set(0, 0.01, -CONFIG.roadLength / 2 + CONFIG.despawnZ);
@@ -274,6 +275,7 @@ const cops = [];
 const mountains = [];
 const arches = [];
 const boostpads = [];
+const rails = [];
 const particles = new Particles(scene);
 
 function spawnTraffic() {
@@ -349,6 +351,14 @@ function spawnBoostPad() {
   pad.userData.used = false;
   scene.add(pad);
   boostpads.push(pad);
+}
+function spawnRail() {
+  for (const side of [-1, 1]) {
+    const r = buildGuardrail(20);
+    r.position.set(side * (roadHalf + 0.8), 0, CONFIG.spawnZ);
+    scene.add(r);
+    rails.push(r);
+  }
 }
 function spawnCop() {
   const { group, bar } = buildCopCar();
@@ -435,6 +445,7 @@ const game = {
   mtnTimer: 0,
   archTimer: 0,
   boostTimer: 0,
+  railTimer: 0,
   biome: 0,
   nextBiomeAt: CONFIG.biomeDistance,
   boostBurst: 0
@@ -461,7 +472,7 @@ function setBiomeTarget() {
 setBiomeTarget();
 
 function clearWorld() {
-  for (const arr of [traffic, coins, props, buildings, cops, mountains, arches, boostpads]) {
+  for (const arr of [traffic, coins, props, buildings, cops, mountains, arches, boostpads, rails]) {
     for (const o of arr) scene.remove(o);
     arr.length = 0;
   }
@@ -488,6 +499,7 @@ function resetGameVars() {
     mtnTimer: 0,
     archTimer: 0,
     boostTimer: 0,
+    railTimer: 0,
     biome: 0,
     nextBiomeAt: CONFIG.biomeDistance,
     boostBurst: 0
@@ -797,7 +809,7 @@ function update(dt) {
       scene.remove(coin);
       coins.splice(i, 1);
       game.coins += 1;
-      audio.coin();
+      audio.coin(THREE.MathUtils.clamp((player.position.x) / 6, -1, 1));
       continue;
     }
     if (coin.position.z > CONFIG.despawnZ) {
@@ -869,6 +881,19 @@ function update(dt) {
       mountains.splice(i, 1);
     }
   }
+  // guardrails tile continuously along the road edges (adaptive to speed)
+  game.railTimer -= dt;
+  if (game.railTimer <= 0) {
+    spawnRail();
+    game.railTimer = 19 / Math.max(game.speed, 1);
+  }
+  for (let i = rails.length - 1; i >= 0; i--) {
+    rails[i].position.z += game.speed * dt;
+    if (rails[i].position.z > CONFIG.despawnZ + 12) {
+      scene.remove(rails[i]);
+      rails.splice(i, 1);
+    }
+  }
   game.archTimer -= dt;
   if (game.archTimer <= 0) {
     spawnArch();
@@ -916,6 +941,9 @@ function updatePolice(dt, phw, phl) {
   if (game.wanted === 0) audio.stopSiren();
 
   const t = performance.now() * 0.006;
+  let nearestCopDz = Infinity;
+  let sirenPan = 0;
+  let sirenVol = 0;
   for (let i = cops.length - 1; i >= 0; i--) {
     const cop = cops[i];
     const bar = cop.userData.bar;
@@ -928,6 +956,12 @@ function updatePolice(dt, phw, phl) {
     if (usingNitro || game.boostBurst > 0) closing -= 34;
     cop.position.z -= closing * dt;
     cop.position.x = THREE.MathUtils.lerp(cop.position.x, player.position.x, dt * 1.6);
+    const cdz = Math.abs(cop.position.z - player.position.z);
+    if (cdz < nearestCopDz) {
+      nearestCopDz = cdz;
+      sirenPan = THREE.MathUtils.clamp((cop.position.x - player.position.x) / 6, -1, 1);
+      sirenVol = THREE.MathUtils.clamp(1 - cdz / 80, 0, 1);
+    }
     if (hits(player.position.x, player.position.z, phw, phl, cop.position.x, cop.position.z, 0.95, 2.2)) {
       endGame();
       return;
@@ -945,6 +979,7 @@ function updatePolice(dt, phw, phl) {
       cops.splice(i, 1);
     }
   }
+  audio.updateSiren(sirenPan, sirenVol);
 }
 
 function updateCamera(dt, hot) {
@@ -1027,6 +1062,14 @@ for (let i = 0; i < 6; i++) {
   spawnPropRow();
   spawnBuilding();
   spawnMountain();
+}
+// pre-fill guardrails so the road edges are continuous at start
+for (let i = 0; i < 16; i++) {
+  spawnRail();
+  const a = rails[rails.length - 1];
+  const b = rails[rails.length - 2];
+  if (a) a.position.z = CONFIG.spawnZ + i * 20;
+  if (b) b.position.z = CONFIG.spawnZ + i * 20;
 }
 for (const arr of [props, buildings, mountains]) for (const o of arr) o.position.z += Math.random() * 200 - 100;
 ui.loader.classList.add('hidden');

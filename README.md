@@ -75,7 +75,10 @@ entirely in the cloud — no Android tooling needed on your PC:
 - ✨ **Particle FX** — coin bursts, nitro sparks, crash debris
 - 🎨 **Flashy UI** — animated gradient title, biome intro banners, combo popups, splash screen
 - 🎮 Multi-input controls: **keyboard**, **on-screen buttons**, and **phone tilt**
-- 🔊 Zero-file **WebAudio** — engine drone, turbo whoosh, siren, coin & crash SFX
+- 🔊 **Realistic 3D audio** (zero files) — multi-oscillator engine with a **6-speed gearbox**
+  (revs climb & shift), rolling **tire + wind** noise that scale with speed, turbo whoosh,
+  and a **stereo-panned police siren** positioned by the cop's location
+- 🛡️ **3D road** — reflective wet-look asphalt, scrolling **metal guardrails**, curbs & neon arches
 - 🏆 Persistent **best score** & coin bank (localStorage)
 - 📱 Mobile-first, responsive, safe-area aware UI, **custom app icon & splash**
 

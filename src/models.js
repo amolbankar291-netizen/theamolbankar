@@ -593,6 +593,29 @@ export function buildBoostPad() {
   return pad;
 }
 
+/** A scrolling metal guardrail segment for the road edges (adds 3D depth). */
+export function buildGuardrail(length = 20) {
+  const g = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ color: 0xb8bec8, metalness: 0.9, roughness: 0.35 });
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, length), metal);
+  rail.position.y = 0.95;
+  rail.castShadow = true;
+  g.add(rail);
+  const rail2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, length), metal);
+  rail2.position.y = 0.6;
+  g.add(rail2);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x6a7080, metalness: 0.7, roughness: 0.5 });
+  const posts = Math.floor(length / 4);
+  for (let i = 0; i <= posts; i++) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, 0.14), postMat);
+    post.position.set(0, 0.5, -length / 2 + i * (length / posts));
+    post.castShadow = true;
+    g.add(post);
+  }
+  g.userData.length = length;
+  return g;
+}
+
 /** A dome of stars for the night sky. Opacity is driven by night factor. */
 export function makeStarfield(count = 700) {
   const geo = new THREE.BufferGeometry();
