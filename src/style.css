@@ -280,8 +280,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 22px;
+  padding: 0 20px;
   pointer-events: none;
+}
+.pad {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
 }
 .touch-btn {
   pointer-events: auto;
@@ -290,9 +295,9 @@ body {
   color: var(--text);
   backdrop-filter: blur(6px);
   border-radius: 50%;
-  width: 78px;
-  height: 78px;
-  font-size: 40px;
+  width: 74px;
+  height: 74px;
+  font-size: 38px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -300,12 +305,26 @@ body {
 }
 .touch-btn:active {
   transform: scale(0.92);
-  background: rgba(255, 122, 26, 0.35);
+  filter: brightness(1.2);
 }
 .touch-btn.nitro {
-  width: 66px;
-  height: 66px;
-  font-size: 28px;
+  width: 60px;
+  height: 60px;
+  font-size: 26px;
+}
+.touch-btn.gas {
+  width: 92px;
+  height: 92px;
+  font-size: 20px;
+  background: rgba(46, 204, 90, 0.4);
+  border-color: rgba(46, 204, 90, 0.6);
+}
+.touch-btn.brake {
+  width: 74px;
+  height: 74px;
+  font-size: 16px;
+  background: rgba(226, 58, 58, 0.4);
+  border-color: rgba(226, 58, 58, 0.6);
 }
 
 /* ---------- Loader ---------- */

@@ -75,9 +75,15 @@
 
       <!-- Touch controls -->
       <div id="touch-controls" class="hidden">
-        <button class="touch-btn steer" id="btn-left" aria-label="Steer left">‹</button>
-        <button class="touch-btn nitro" id="btn-nitro" aria-label="Nitro">🔥</button>
-        <button class="touch-btn steer" id="btn-right" aria-label="Steer right">›</button>
+        <div class="pad pad-left">
+          <button class="touch-btn steer" id="btn-left" aria-label="Steer left">‹</button>
+          <button class="touch-btn steer" id="btn-right" aria-label="Steer right">›</button>
+        </div>
+        <div class="pad pad-right">
+          <button class="touch-btn brake" id="btn-brake" aria-label="Brake">BRAKE</button>
+          <button class="touch-btn nitro" id="btn-nitro" aria-label="Nitro">🔥</button>
+          <button class="touch-btn gas" id="btn-gas" aria-label="Accelerate">GAS</button>
+        </div>
       </div>
 
       <!-- Start / Menu screen -->
@@ -92,8 +98,8 @@
           <button id="btn-play" class="btn-primary">▶ RACE</button>
           <button id="btn-garage" class="btn-secondary">🚗 GARAGE</button>
           <div class="hint">
-            <p>Drive: <b>← →</b> / A D / tilt / on-screen</p>
-            <p>Nitro: <b>Space</b> / 🔥 &nbsp;·&nbsp; Near-miss traffic for combos</p>
+            <p>Steer <b>← →</b> · Gas <b>↑/W</b> · Brake <b>↓/S</b> · Nitro <b>Space</b></p>
+            <p>On phone: use the on-screen pedals &amp; tilt · Near-miss for combos</p>
           </div>
         </div>
       </div>

@@ -95,7 +95,10 @@ entirely in the cloud — no Android tooling needed on your PC:
 | Action | Keyboard | Touch | Motion |
 | ------ | -------- | ----- | ------ |
 | Steer left / right | `←` `→` or `A` `D` | on-screen `‹` `›` | tilt phone |
+| Accelerate (gas) | `↑` or `W` | **GAS** pedal | — |
+| Brake | `↓` or `S` | **BRAKE** pedal | — |
 | Nitro | `Space` | 🔥 button | — |
+| Switch view (chase/cockpit) | — | 🎥 button | — |
 | Restart (game over) | `Enter` | RACE AGAIN | — |
 
 ---

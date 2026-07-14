@@ -43,6 +43,9 @@ const CONFIG = {
   nitroDrain: 40,
   nitroRegen: 8,
   steerSpeed: 15,
+  accel: 30, // throttle acceleration (units/s^2)
+  brakeDecel: 62, // braking deceleration
+  coastDecel: 16, // engine braking when off throttle
   kmhDisplay: 2.4,
   biomeDistance: 1100
 };
@@ -369,17 +372,21 @@ function spawnCop() {
 }
 
 // ---------- Input ----------
-const input = { left: false, right: false, nitro: false, tilt: 0 };
+const input = { left: false, right: false, gas: false, brake: false, nitro: false, tilt: 0 };
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+  if (e.code === 'ArrowUp' || e.code === 'KeyW') input.gas = true;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = true;
   if (e.code === 'Space') input.nitro = true;
   if (e.code === 'Enter' && state === 'gameover') startGame();
 });
 window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+  if (e.code === 'ArrowUp' || e.code === 'KeyW') input.gas = false;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') input.brake = false;
   if (e.code === 'Space') input.nitro = false;
 });
 function bindHold(id, prop) {
@@ -402,6 +409,8 @@ function bindHold(id, prop) {
 bindHold('btn-left', 'left');
 bindHold('btn-right', 'right');
 bindHold('btn-nitro', 'nitro');
+bindHold('btn-gas', 'gas');
+bindHold('btn-brake', 'brake');
 function enableTilt() {
   window.addEventListener('deviceorientation', (e) => {
     if (e.gamma == null) return;
@@ -695,13 +704,23 @@ function update(dt) {
   }
 
   const usingNitro = input.nitro && game.nitro > 0;
-  let target = Math.min(CONFIG.baseSpeed + game.distance * 0.02, CONFIG.maxSpeed) * playerStats.topSpeed;
-  if (usingNitro) target += CONFIG.nitroBoost;
+  // top speed ceiling (grows a little with distance, scaled by the car)
+  let vmax = Math.min(CONFIG.baseSpeed + game.distance * 0.02, CONFIG.maxSpeed) * playerStats.topSpeed;
+  if (usingNitro) vmax += CONFIG.nitroBoost;
   if (game.boostBurst > 0) {
-    target += 40;
+    vmax += 40;
     game.boostBurst -= dt;
   }
-  game.speed += (target - game.speed) * Math.min(dt * 2 * playerStats.accel, 1);
+  // Player-controlled throttle / brake / coast
+  if (input.brake) {
+    game.speed -= CONFIG.brakeDecel * dt;
+    if (game.speed > 4) particles.trail(new THREE.Vector3(player.position.x, 0.15, player.position.z + 2.4), 0xffffff);
+  } else if (input.gas || usingNitro) {
+    game.speed += CONFIG.accel * playerStats.accel * dt;
+  } else {
+    game.speed -= CONFIG.coastDecel * dt;
+  }
+  game.speed = THREE.MathUtils.clamp(game.speed, 0, vmax);
 
   if (usingNitro) {
     game.nitro = Math.max(0, game.nitro - CONFIG.nitroDrain * dt);
