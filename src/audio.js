@@ -7,6 +7,7 @@ export class AudioKit {
     this.ctx = null;
     this.engineOsc = null;
     this.engineGain = null;
+    this.siren = null;
     this.enabled = true;
   }
 
@@ -69,7 +70,48 @@ export class AudioKit {
   }
 
   nitro() {
-    this.blip(300, 0.35, 'sawtooth', 0.14);
+    // rising turbo whoosh
+    if (!this.ctx || !this.enabled) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sawtooth';
+    const t = this.ctx.currentTime;
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(900, t + 0.4);
+    g.gain.setValueAtTime(0.16, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t);
+    o.stop(t + 0.45);
+  }
+
+  startSiren() {
+    if (!this.ctx || !this.enabled || this.siren) return;
+    const o = this.ctx.createOscillator();
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    const g = this.ctx.createGain();
+    o.type = 'square';
+    o.frequency.value = 720;
+    lfo.type = 'sine';
+    lfo.frequency.value = 2.2; // wail speed
+    lfoGain.gain.value = 180;
+    lfo.connect(lfoGain).connect(o.frequency);
+    g.gain.value = 0.05;
+    o.connect(g).connect(this.ctx.destination);
+    o.start();
+    lfo.start();
+    this.siren = { o, lfo, g };
+  }
+
+  stopSiren() {
+    if (!this.siren) return;
+    try {
+      this.siren.g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+      this.siren.o.stop(this.ctx.currentTime + 0.3);
+      this.siren.lfo.stop(this.ctx.currentTime + 0.3);
+    } catch (_) {}
+    this.siren = null;
   }
 
   crash() {

@@ -1,38 +1,50 @@
 # 🏁 Fortuner Rush
 
-A **unique 3D endless SUV driving game** starring a Toyota-Fortuner-style off‑roader.
-Dodge traffic, grab coins, trigger **nitro**, and chase the horizon through a live
-**day/night cycle** — playable in any browser and shippable as a **native Android & iOS app**.
+A **Fast & Furious-style 3D arcade street racer**. Weave through traffic at insane speed,
+chain **near-miss combos** for huge score multipliers, trigger **nitro**, escape a
+**police chase**, bank coins to **unlock faster cars in the garage**, and race through a
+live **day → night city** — playable in any browser and shippable as a **native Android
+& iOS app**.
 
 Built with [**Three.js**](https://threejs.org) (WebGL 3D) + [**Vite**](https://vitejs.dev),
 and wrapped for mobile with [**Capacitor**](https://capacitorjs.com).
-Everything (the SUV, traffic, coins, world) is generated **procedurally in code** — there
+Everything (cars, traffic, cops, city, world) is generated **procedurally in code** — there
 are **no external 3D/image/audio asset files**, so it runs anywhere and installs tiny.
 
 ---
 
 ## ✨ Features
 
-- 🚙 Detailed procedural **Fortuner SUV** (body, cabin, chrome grille, glass, head/tail lights)
-- 🛣️ Infinite scrolling **3-lane highway** with painted lane markings & curbs
-- 🚗 Randomized **traffic** (cars & trucks) with progressive difficulty
-- 🪙 **Coin** pickups that boost your score
-- 🔥 **Nitro boost** with a rechargeable meter + exhaust flame + camera shake
-- 🌅 Dynamic **day → night** lighting (headlights & streetlights switch on at night)
+- 🚗 **4 unlockable cars** in a **Garage** — Fortuner SUV, Neon Speedster, Charger R/T,
+  Velocity X — each with unique **speed / acceleration / handling** stats
+- 🪙 **Coin economy**: bank coins between runs to buy faster cars (progress is saved)
+- 💥 **Near-miss combo system** — shave past traffic for score **multipliers up to x8** + free nitro
+- 🚓 **Police chase & wanted level** (★–★★★★★) — cop cars with flashing lights hunt you and
+  fall back when you nitro; lose them to cut your heat
+- 🔥 **Nitro boost** with rechargeable meter, exhaust flame, sparks & camera shake
+- 🏙️ **Neon night city** — buildings with lit windows, streetlights, moon/sun, day↔night cycle
+- ⚡ **Real sense of speed** — dynamic FOV, speed-line & vignette overlays, screen shake
+- ✨ **Particle FX** — coin bursts, nitro sparks, crash debris
 - 🎮 Multi-input controls: **keyboard**, **on-screen buttons**, and **phone tilt**
-- 🔊 Zero-file **WebAudio** engine drone + coin/nitro/crash SFX
-- 🏆 Persistent **best score** (localStorage)
+- 🔊 Zero-file **WebAudio** — engine drone, turbo whoosh, siren, coin & crash SFX
+- 🏆 Persistent **best score** & coin bank (localStorage)
 - 📱 Mobile-first, responsive, safe-area aware UI
 
 ---
 
-## 🎮 Controls
+## 🎮 How to play
+
+- **Weave through traffic** — the closer you pass without crashing, the bigger your
+  **near-miss combo** and score multiplier.
+- **Grab coins** to build your bank, then head to the **Garage** to unlock quicker cars.
+- Driving fast raises your **wanted level** — **cops** will chase. Hit **nitro** to
+  outrun them and shake the heat.
 
 | Action | Keyboard | Touch | Motion |
 | ------ | -------- | ----- | ------ |
 | Steer left / right | `←` `→` or `A` `D` | on-screen `‹` `›` | tilt phone |
 | Nitro | `Space` | 🔥 button | — |
-| Restart (game over) | `Enter` | RETRY | — |
+| Restart (game over) | `Enter` | RACE AGAIN | — |
 
 ---
 
@@ -100,10 +112,11 @@ In Xcode: pick a simulator/device and **Run ▶**, or **Product → Archive** to
 ├── vite.config.js        # Vite config (relative base for Capacitor WebView)
 ├── capacitor.config.json # Native app id / name / web dir
 ├── src/
-│   ├── main.js           # Engine, world, game loop, state machine, input
-│   ├── models.js         # Procedural 3D models (SUV, traffic, coins, props)
-│   ├── audio.js          # WebAudio SFX + engine synth
-│   └── style.css         # UI / HUD styling
+│   ├── main.js           # Engine, world, game loop, garage, combos, police, FX
+│   ├── models.js         # Procedural 3D models (cars, cops, coins, city, props)
+│   ├── particles.js      # Pooled particle bursts (coins, nitro, crash)
+│   ├── audio.js          # WebAudio SFX (engine, turbo, siren, coin, crash)
+│   └── style.css         # UI / HUD / garage styling
 └── README.md
 ```
 

@@ -16,6 +16,10 @@
     <div id="app">
       <canvas id="game-canvas"></canvas>
 
+      <!-- Speed / nitro visual effects -->
+      <div id="speedlines" class="fx"></div>
+      <div id="vignette" class="fx"></div>
+
       <!-- Heads-up display -->
       <div id="hud" class="hidden">
         <div class="hud-row">
@@ -33,11 +37,17 @@
             <span class="hud-unit">km/h</span>
           </div>
         </div>
+        <div class="hud-row2">
+          <span id="hud-mult" class="mult">x1.0</span>
+          <span id="wanted" class="wanted"></span>
+        </div>
         <div class="nitro-wrap">
           <div class="nitro-label">NITRO</div>
           <div class="nitro-bar"><div id="nitro-fill" class="nitro-fill"></div></div>
         </div>
       </div>
+
+      <div id="combo-popup" class="combo-popup"></div>
 
       <!-- Touch controls -->
       <div id="touch-controls" class="hidden">
@@ -50,27 +60,43 @@
       <div id="menu" class="overlay">
         <div class="panel">
           <h1 class="title">FORTUNER<span>RUSH</span></h1>
-          <p class="subtitle">Outrun traffic. Grab coins. Chase the horizon.</p>
-          <div class="best">Best Score: <b id="best-score">0</b></div>
-          <button id="btn-play" class="btn-primary">▶ PLAY</button>
-          <div class="hint">
-            <p>Drive: <b>← →</b> / A D / tilt phone / on-screen buttons</p>
-            <p>Nitro: <b>Space</b> / 🔥 button</p>
+          <p class="subtitle">Outrun the cops. Chain near-misses. Rule the street.</p>
+          <div class="stat-row">
+            <div>Best <b id="best-score">0</b></div>
+            <div>🪙 <b id="bank-coins">0</b></div>
           </div>
+          <button id="btn-play" class="btn-primary">▶ RACE</button>
+          <button id="btn-garage" class="btn-secondary">🚗 GARAGE</button>
+          <div class="hint">
+            <p>Drive: <b>← →</b> / A D / tilt / on-screen</p>
+            <p>Nitro: <b>Space</b> / 🔥 &nbsp;·&nbsp; Near-miss traffic for combos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Garage screen -->
+      <div id="garage" class="overlay hidden">
+        <div class="panel garage-panel">
+          <div class="garage-head">
+            <h2 class="go-title" style="margin:0">GARAGE</h2>
+            <div class="garage-bank">🪙 <b id="garage-bank">0</b></div>
+          </div>
+          <div id="car-list" class="car-list"></div>
+          <button id="btn-garage-back" class="btn-secondary">‹ BACK</button>
         </div>
       </div>
 
       <!-- Game over screen -->
       <div id="gameover" class="overlay hidden">
         <div class="panel">
-          <h2 class="go-title">CRASHED!</h2>
+          <h2 class="go-title">BUSTED!</h2>
           <div class="go-stats">
             <div><span>Score</span><b id="go-score">0</b></div>
             <div><span>Coins</span><b id="go-coins">0</b></div>
             <div><span>Distance</span><b id="go-distance">0 m</b></div>
           </div>
           <div id="go-newbest" class="newbest hidden">🏆 NEW BEST!</div>
-          <button id="btn-retry" class="btn-primary">↻ RETRY</button>
+          <button id="btn-retry" class="btn-primary">↻ RACE AGAIN</button>
           <button id="btn-menu" class="btn-secondary">MENU</button>
         </div>
       </div>

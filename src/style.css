@@ -320,6 +320,210 @@ body {
   letter-spacing: 1px;
 }
 
+/* ---------- HUD row 2: multiplier + wanted stars ---------- */
+.hud-row2 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+.mult {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(45, 226, 230, 0.7);
+  transition: opacity 0.2s ease;
+}
+.wanted {
+  font-size: 20px;
+  color: #ff3b3b;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(255, 59, 59, 0.8);
+}
+
+/* ---------- Combo popup ---------- */
+.combo-popup {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  font-size: clamp(26px, 8vw, 46px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--accent-2);
+  text-shadow: 0 0 22px rgba(255, 122, 26, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.combo-popup.show {
+  animation: comboPop 0.9s ease forwards;
+}
+@keyframes comboPop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5) rotate(-4deg);
+  }
+  25% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.15) rotate(2deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1) translateY(-30px);
+  }
+}
+
+/* ---------- Speed FX overlays ---------- */
+.fx {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+#speedlines {
+  background:
+    repeating-radial-gradient(
+      circle at 50% 46%,
+      transparent 0,
+      transparent 46px,
+      rgba(255, 255, 255, 0.06) 48px,
+      transparent 50px
+    );
+  mix-blend-mode: screen;
+}
+#vignette {
+  background: radial-gradient(
+    circle at 50% 48%,
+    transparent 40%,
+    rgba(45, 226, 230, 0.12) 78%,
+    rgba(45, 226, 230, 0.35) 100%
+  );
+}
+
+/* ---------- Menu stat row ---------- */
+.stat-row {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 6px 0 16px;
+}
+.stat-row b {
+  color: var(--accent-2);
+}
+
+/* ---------- Garage ---------- */
+.garage-panel {
+  width: min(560px, 94vw);
+}
+.garage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.garage-bank {
+  font-size: 16px;
+}
+.garage-bank b {
+  color: var(--accent-2);
+}
+.car-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  max-height: 58vh;
+  overflow-y: auto;
+}
+.car-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  text-align: left;
+}
+.car-card.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan), 0 0 20px rgba(45, 226, 230, 0.3);
+}
+.car-swatch {
+  height: 44px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: inset 0 -10px 18px rgba(0, 0, 0, 0.35);
+}
+.car-name {
+  font-weight: 800;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.car-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+.stat span {
+  width: 26px;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+.stat .bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stat .bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+}
+.car-btn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+.car-btn.buy {
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  color: #221200;
+}
+.car-btn.select {
+  background: var(--cyan);
+  color: #002; 
+}
+.car-btn.owned {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+.car-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Hide touch controls on devices with a real pointer/keyboard */
 @media (hover: hover) and (pointer: fine) {
   #touch-controls {
