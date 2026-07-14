@@ -1,19 +1,32 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import {
   CARS,
   buildTrafficCar,
   buildCopCar,
   buildCoin,
   buildProp,
-  buildBuilding
+  buildBuilding,
+  buildPalm,
+  buildBush,
+  buildRock,
+  buildCactus,
+  buildMountainRidge,
+  buildArch,
+  buildBillboard,
+  buildBoostPad,
+  makeStarfield
 } from './models.js';
 import { AudioKit } from './audio.js';
 import { Particles } from './particles.js';
 
 /* ============================================================
-   FORTUNER RUSH — a Fast & Furious-style arcade street racer.
-   Forward is -Z; the world scrolls toward +Z (camera) to
-   simulate driving. Player steers along X.
+   FORTUNER RUSH — a Fast & Furious-style arcade street racer
+   with biomes (Neon City / Jungle / Desert Hills), neon bloom,
+   boost pads, police chases and near-miss combos.
+   Forward is -Z; the world scrolls toward +Z (camera).
    ============================================================ */
 
 const CONFIG = {
@@ -28,7 +41,8 @@ const CONFIG = {
   nitroDrain: 40,
   nitroRegen: 8,
   steerSpeed: 15,
-  kmhDisplay: 2.4
+  kmhDisplay: 2.4,
+  biomeDistance: 1100
 };
 
 const roadHalf = (CONFIG.laneCount * CONFIG.laneWidth) / 2;
@@ -36,6 +50,13 @@ const lanePositions = [];
 for (let i = 0; i < CONFIG.laneCount; i++) {
   lanePositions.push(-roadHalf + CONFIG.laneWidth * (i + 0.5));
 }
+
+// ---------- Biomes ----------
+const BIOMES = [
+  { name: 'NEON CITY', tag: 'Downtown lights', ground: 0x1a1f2e, skyDay: 0x8fb4ff, skyNight: 0x0a0f1e, fogDay: 0xaecbff, fogNight: 0x0a0f1e, mtn: 0x2a3550, prop: 'city' },
+  { name: 'JUNGLE RUN', tag: 'Into the wild', ground: 0x1f4d24, skyDay: 0x9fe6c6, skyNight: 0x081810, fogDay: 0xbfeecf, fogNight: 0x08160f, mtn: 0x1f5a33, prop: 'jungle' },
+  { name: 'DESERT HILLS', tag: 'Sun & dust', ground: 0x8a6a3a, skyDay: 0xffd39a, skyNight: 0x1c1226, fogDay: 0xffdca8, fogNight: 0x1a1020, mtn: 0x7a5a3a, prop: 'hills' }
+];
 
 // ---------- DOM ----------
 const el = (id) => document.getElementById(id);
@@ -49,6 +70,9 @@ const ui = {
   nitroFill: el('nitro-fill'),
   wanted: el('wanted'),
   combo: el('combo-popup'),
+  banner: el('biome-banner'),
+  bannerName: el('banner-name'),
+  bannerTag: el('banner-tag'),
   menu: el('menu'),
   garage: el('garage'),
   gameover: el('gameover'),
@@ -73,11 +97,17 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x0b1020, 60, 200);
+scene.fog = new THREE.Fog(0x0b1020, 60, 210);
 
-const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 500);
+const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 600);
 const camBase = new THREE.Vector3(0, 5.4, 10.8);
 camera.position.copy(camBase);
+
+// Post-processing: neon bloom
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.7, 0.6, 0.82);
+composer.addPass(bloom);
 
 // ---------- Lighting ----------
 const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x243046, 0.7);
@@ -95,7 +125,6 @@ sun.shadow.camera.bottom = -40;
 sun.target.position.set(0, 0, -10);
 scene.add(sun, sun.target);
 
-// Moon/sun disc
 const celestial = new THREE.Mesh(
   new THREE.SphereGeometry(6, 20, 20),
   new THREE.MeshBasicMaterial({ color: 0xfff2c0, fog: false })
@@ -103,11 +132,12 @@ const celestial = new THREE.Mesh(
 celestial.position.set(-60, 60, -180);
 scene.add(celestial);
 
+const stars = makeStarfield();
+scene.add(stars);
+
 // ---------- Ground + Road ----------
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(700, 900),
-  new THREE.MeshStandardMaterial({ color: 0x13351f, roughness: 1 })
-);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1f2e, roughness: 1 });
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 1000), groundMat);
 ground.rotation.x = -Math.PI / 2;
 ground.position.z = -180;
 ground.receiveShadow = true;
@@ -182,7 +212,6 @@ const flameMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.9
 });
-
 function loadSelectedCar() {
   scene.remove(player);
   playerStats = CARS.find((c) => c.id === save.selected) || CARS[0];
@@ -191,7 +220,6 @@ function loadSelectedCar() {
   playerWheels = built.wheels;
   player.position.set(lanePositions[1], 0.55, 0);
   scene.add(player);
-  // nitro flame
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 10), flameMat);
   flame.rotation.x = -Math.PI / 2;
   flame.position.set(0, 0.1, 2.6);
@@ -206,6 +234,9 @@ const coins = [];
 const props = [];
 const buildings = [];
 const cops = [];
+const mountains = [];
+const arches = [];
+const boostpads = [];
 const particles = new Particles(scene);
 
 function spawnTraffic() {
@@ -219,7 +250,6 @@ function spawnTraffic() {
   scene.add(car);
   traffic.push(car);
 }
-
 function spawnCoinRow() {
   const lane = (Math.random() * CONFIG.laneCount) | 0;
   const count = 3 + ((Math.random() * 4) | 0);
@@ -231,18 +261,28 @@ function spawnCoinRow() {
     coins.push(coin);
   }
 }
-
+function currentBiome() {
+  return BIOMES[game.biome];
+}
 function spawnPropRow() {
+  const biome = currentBiome().prop;
   for (const side of [-1, 1]) {
-    const kind = Math.random() < 0.5 ? 'tree' : 'light';
-    const p = buildProp(kind);
+    let p;
+    if (biome === 'jungle') {
+      const r = Math.random();
+      p = r < 0.5 ? buildPalm() : r < 0.8 ? buildProp('tree') : buildBush();
+    } else if (biome === 'hills') {
+      p = Math.random() < 0.55 ? buildRock() : buildCactus();
+    } else {
+      p = Math.random() < 0.55 ? buildProp('light') : buildBillboard();
+    }
     p.position.set(side * (roadHalf + 3 + Math.random() * 3), 0, CONFIG.spawnZ - Math.random() * 40);
     scene.add(p);
     props.push(p);
   }
 }
-
 function spawnBuilding() {
+  if (currentBiome().prop !== 'city') return;
   for (const side of [-1, 1]) {
     if (Math.random() < 0.4) continue;
     const b = buildBuilding();
@@ -251,12 +291,32 @@ function spawnBuilding() {
     buildings.push(b);
   }
 }
-
+function spawnMountain() {
+  for (const side of [-1, 1]) {
+    const m = buildMountainRidge(currentBiome().mtn);
+    m.position.set(side * (72 + Math.random() * 16), 0, CONFIG.spawnZ - Math.random() * 60);
+    scene.add(m);
+    mountains.push(m);
+  }
+}
+const ARCH_COLORS = [0x2de2e6, 0xff2a6d, 0xffd23f, 0x9b4dd2];
+function spawnArch() {
+  const a = buildArch(ARCH_COLORS[(Math.random() * ARCH_COLORS.length) | 0]);
+  a.position.set(0, 0, CONFIG.spawnZ);
+  scene.add(a);
+  arches.push(a);
+}
+function spawnBoostPad() {
+  const pad = buildBoostPad();
+  pad.position.set(lanePositions[(Math.random() * CONFIG.laneCount) | 0], 0.05, CONFIG.spawnZ - Math.random() * 40);
+  pad.userData.used = false;
+  scene.add(pad);
+  boostpads.push(pad);
+}
 function spawnCop() {
   const { group, bar } = buildCopCar();
   group.position.set(lanePositions[(Math.random() * CONFIG.laneCount) | 0], 0.55, 26 + Math.random() * 20);
   group.userData.bar = bar;
-  group.userData.wheels = [];
   scene.add(group);
   cops.push(group);
 }
@@ -323,12 +383,37 @@ const game = {
   spawnTimer: 0,
   coinTimer: 0,
   propTimer: 0,
-  buildTimer: 0
+  buildTimer: 0,
+  mtnTimer: 0,
+  archTimer: 0,
+  boostTimer: 0,
+  biome: 0,
+  nextBiomeAt: CONFIG.biomeDistance,
+  boostBurst: 0
 };
 const audio = new AudioKit();
 
+// Live palette (lerps toward the active biome for smooth transitions)
+const pal = {
+  ground: new THREE.Color(BIOMES[0].ground),
+  skyDay: new THREE.Color(BIOMES[0].skyDay),
+  skyNight: new THREE.Color(BIOMES[0].skyNight),
+  fogDay: new THREE.Color(BIOMES[0].fogDay),
+  fogNight: new THREE.Color(BIOMES[0].fogNight)
+};
+const tgt = { ground: new THREE.Color(), skyDay: new THREE.Color(), skyNight: new THREE.Color(), fogDay: new THREE.Color(), fogNight: new THREE.Color() };
+function setBiomeTarget() {
+  const b = currentBiome();
+  tgt.ground.setHex(b.ground);
+  tgt.skyDay.setHex(b.skyDay);
+  tgt.skyNight.setHex(b.skyNight);
+  tgt.fogDay.setHex(b.fogDay);
+  tgt.fogNight.setHex(b.fogNight);
+}
+setBiomeTarget();
+
 function clearWorld() {
-  for (const arr of [traffic, coins, props, buildings, cops]) {
+  for (const arr of [traffic, coins, props, buildings, cops, mountains, arches, boostpads]) {
     for (const o of arr) scene.remove(o);
     arr.length = 0;
   }
@@ -351,8 +436,15 @@ function resetGameVars() {
     spawnTimer: 0,
     coinTimer: 0,
     propTimer: 0,
-    buildTimer: 0
+    buildTimer: 0,
+    mtnTimer: 0,
+    archTimer: 0,
+    boostTimer: 0,
+    biome: 0,
+    nextBiomeAt: CONFIG.biomeDistance,
+    boostBurst: 0
   });
+  setBiomeTarget();
 }
 
 function startGame() {
@@ -367,6 +459,7 @@ function startGame() {
   ui.touch.classList.remove('hidden');
   audio.init();
   audio.resume();
+  showBanner(currentBiome().name, currentBiome().tag);
 }
 
 function endGame() {
@@ -378,12 +471,10 @@ function endGame() {
   particles.burst(player.position, 0xffd23f, 20, { speed: 7, life: 0.8 });
   const flame = player.userData.flame;
   if (flame) flame.visible = false;
-
   save.bank += game.coins;
   const isBest = game.score > save.best;
   if (isBest) save.best = game.score;
   persist();
-
   ui.best.textContent = save.best;
   ui.bank.textContent = save.bank;
   ui.goScore.textContent = game.score;
@@ -481,27 +572,42 @@ function hits(px, pz, phw, phl, ox, oz, ohw, ohl) {
 function showCombo(text) {
   ui.combo.textContent = text;
   ui.combo.classList.remove('show');
-  void ui.combo.offsetWidth; // restart animation
+  void ui.combo.offsetWidth;
   ui.combo.classList.add('show');
 }
+function showBanner(name, tag) {
+  ui.bannerName.textContent = name;
+  ui.bannerTag.textContent = tag;
+  ui.banner.classList.remove('show');
+  void ui.banner.offsetWidth;
+  ui.banner.classList.add('show');
+}
 
-// ---------- Day/Night ----------
-const dayColor = new THREE.Color(0x87b6ff);
-const nightColor = new THREE.Color(0x070b16);
-const dayFog = new THREE.Color(0xaecbff);
-const nightFog = new THREE.Color(0x070b16);
+// ---------- Environment (biome palette + day/night) ----------
 const tmp = new THREE.Color();
-function applyDayNight() {
-  const d = (Math.sin(game.dayTime * Math.PI * 2 - Math.PI / 2) + 1) / 2;
-  tmp.copy(nightColor).lerp(dayColor, d);
+function applyEnvironment(dt) {
+  // lerp live palette toward active biome
+  const k = Math.min(dt * 0.8, 1);
+  pal.ground.lerp(tgt.ground, k);
+  pal.skyDay.lerp(tgt.skyDay, k);
+  pal.skyNight.lerp(tgt.skyNight, k);
+  pal.fogDay.lerp(tgt.fogDay, k);
+  pal.fogNight.lerp(tgt.fogNight, k);
+
+  const d = (Math.sin(game.dayTime * Math.PI * 2 - Math.PI / 2) + 1) / 2; // 1 day, 0 night
+  const night = 1 - d;
+  tmp.copy(pal.skyNight).lerp(pal.skyDay, d);
   scene.background = tmp.clone();
-  scene.fog.color.copy(nightFog).lerp(dayFog, d);
+  scene.fog.color.copy(pal.fogNight).lerp(pal.fogDay, d);
+  groundMat.color.copy(pal.ground).multiplyScalar(0.5 + d * 0.6);
+
   sun.intensity = 0.2 + d * 1.4;
   hemi.intensity = 0.22 + d * 0.6;
   sun.color.setHSL(0.09 + d * 0.04, 0.6, 0.5 + d * 0.4);
   celestial.material.color.setHex(d > 0.5 ? 0xfff2c0 : 0xdfe6ff);
-  if (player.userData.headlights) player.userData.headlights.emissiveIntensity = 0.4 + (1 - d) * 1.8;
-  const night = 1 - d;
+  stars.material.opacity = Math.max(0, night - 0.15) * 1.1;
+
+  if (player.userData.headlights) player.userData.headlights.emissiveIntensity = 0.4 + night * 1.8;
   for (const p of props) {
     if (p.userData.isLight) {
       const bulb = p.children[2];
@@ -516,14 +622,23 @@ const clock = new THREE.Clock();
 
 function update(dt) {
   particles.update(dt);
+  // gently animate arch/boost glow always
+  const gt = performance.now() * 0.004;
+  for (const a of arches) if (a.userData.mat) a.userData.mat.emissiveIntensity = 1.6 + Math.sin(gt + a.position.z) * 0.8;
+  for (const p of boostpads) if (p.userData.mat) p.userData.mat.emissiveIntensity = 1.8 + Math.sin(gt * 2 + p.position.z) * 1.0;
+
   if (state !== 'playing') {
-    applyDayNight();
+    applyEnvironment(dt);
     return;
   }
 
   const usingNitro = input.nitro && game.nitro > 0;
   let target = Math.min(CONFIG.baseSpeed + game.distance * 0.02, CONFIG.maxSpeed) * playerStats.topSpeed;
   if (usingNitro) target += CONFIG.nitroBoost;
+  if (game.boostBurst > 0) {
+    target += 40;
+    game.boostBurst -= dt;
+  }
   game.speed += (target - game.speed) * Math.min(dt * 2 * playerStats.accel, 1);
 
   if (usingNitro) {
@@ -549,6 +664,15 @@ function update(dt) {
   game.distance += move;
   game.dayTime = (game.dayTime + dt * 0.014) % 1;
 
+  // biome switch
+  if (game.distance >= game.nextBiomeAt) {
+    game.biome = (game.biome + 1) % BIOMES.length;
+    game.nextBiomeAt += CONFIG.biomeDistance;
+    setBiomeTarget();
+    showBanner(currentBiome().name, currentBiome().tag);
+    game.nitro = Math.min(100, game.nitro + 25);
+  }
+
   // combo decay
   if (game.comboTimer > 0) {
     game.comboTimer -= dt;
@@ -559,7 +683,7 @@ function update(dt) {
   }
   game.score = Math.floor(game.distance * game.mult) + game.coins * 25;
 
-  // Steering (handling stat affects responsiveness)
+  // Steering
   let dir = 0;
   if (input.left) dir -= 1;
   if (input.right) dir += 1;
@@ -591,22 +715,15 @@ function update(dt) {
     const ohl = car.userData.length / 2;
     const dx = Math.abs(player.position.x - car.position.x);
     const dz = Math.abs(player.position.z - car.position.z);
-
     if (dz < 4) car.userData.minDx = Math.min(car.userData.minDx, dx);
-
     if (hits(player.position.x, player.position.z, phw, phl, car.position.x, car.position.z, 0.95, ohl)) {
       endGame();
       return;
     }
-
-    // scored once the car falls behind the player
     if (!car.userData.scored && car.position.z > player.position.z + phl + ohl) {
       car.userData.scored = true;
-      if (car.userData.minDx < 2.4) {
-        registerNearMiss(car.position.x);
-      }
+      if (car.userData.minDx < 2.4) registerNearMiss(car.position.x);
     }
-
     if (car.position.z > CONFIG.despawnZ) {
       scene.remove(car);
       traffic.splice(i, 1);
@@ -637,14 +754,37 @@ function update(dt) {
     }
   }
 
-  // ---- Police / wanted ----
+  // ---- Boost pads ----
+  game.boostTimer -= dt;
+  if (game.boostTimer <= 0) {
+    spawnBoostPad();
+    game.boostTimer = 3.5 + Math.random() * 3;
+  }
+  for (let i = boostpads.length - 1; i >= 0; i--) {
+    const pad = boostpads[i];
+    pad.position.z += game.speed * dt;
+    if (!pad.userData.used && hits(player.position.x, player.position.z, phw, phl, pad.position.x, pad.position.z, 1.1, 2)) {
+      pad.userData.used = true;
+      game.boostBurst = 1.4;
+      game.nitro = Math.min(100, game.nitro + 20);
+      particles.burst(new THREE.Vector3(player.position.x, 0.6, player.position.z), 0x2de2e6, 16, { speed: 8, life: 0.6 });
+      audio.nitro();
+      showCombo('BOOST!');
+    }
+    if (pad.position.z > CONFIG.despawnZ) {
+      scene.remove(pad);
+      boostpads.splice(i, 1);
+    }
+  }
+
+  // ---- Police ----
   updatePolice(dt, phw, phl);
 
   // ---- Scenery ----
   game.propTimer -= dt;
   if (game.propTimer <= 0) {
     spawnPropRow();
-    game.propTimer = 0.6;
+    game.propTimer = 0.5;
   }
   for (let i = props.length - 1; i >= 0; i--) {
     props[i].position.z += game.speed * dt;
@@ -665,10 +805,34 @@ function update(dt) {
       buildings.splice(i, 1);
     }
   }
+  game.mtnTimer -= dt;
+  if (game.mtnTimer <= 0) {
+    spawnMountain();
+    game.mtnTimer = 2.4;
+  }
+  for (let i = mountains.length - 1; i >= 0; i--) {
+    mountains[i].position.z += game.speed * dt * 0.85;
+    if (mountains[i].position.z > CONFIG.despawnZ + 80) {
+      scene.remove(mountains[i]);
+      mountains.splice(i, 1);
+    }
+  }
+  game.archTimer -= dt;
+  if (game.archTimer <= 0) {
+    spawnArch();
+    game.archTimer = 5 + Math.random() * 4;
+  }
+  for (let i = arches.length - 1; i >= 0; i--) {
+    arches[i].position.z += game.speed * dt;
+    if (arches[i].position.z > CONFIG.despawnZ + 6) {
+      scene.remove(arches[i]);
+      arches.splice(i, 1);
+    }
+  }
 
-  updateCamera(dt, usingNitro);
+  updateCamera(dt, usingNitro || game.boostBurst > 0);
   audio.setEngine(THREE.MathUtils.clamp((game.speed - CONFIG.baseSpeed) / CONFIG.maxSpeed + 0.3, 0, 1));
-  applyDayNight();
+  applyEnvironment(dt);
   updateSpeedFx(usingNitro);
   updateHud();
 }
@@ -677,8 +841,8 @@ function registerNearMiss(x) {
   game.combo += 1;
   game.comboTimer = 2.2;
   game.mult = Math.min(8, 1 + game.combo * 0.5);
-  game.nitro = Math.min(100, game.nitro + 12); // reward: free nitro
-  game.heat += 0.6; // aggressive driving raises heat
+  game.nitro = Math.min(100, game.nitro + 12);
+  game.heat += 0.6;
   particles.burst(new THREE.Vector3(x, 1.2, player.position.z), 0x2de2e6, 8, { speed: 5, life: 0.5 });
   const msgs = ['NEAR MISS!', 'CLOSE ONE!', 'INSANE!', 'CRAZY!'];
   showCombo(`${msgs[Math.min(msgs.length - 1, game.combo - 1)] || 'COMBO'} x${game.mult.toFixed(1)}`);
@@ -686,15 +850,12 @@ function registerNearMiss(x) {
 }
 
 function updatePolice(dt, phw, phl) {
-  // Heat builds with speed/distance and near-misses; wanted = stars.
   game.heat += dt * (0.25 + (game.speed / CONFIG.maxSpeed) * 0.5);
   const newWanted = Math.min(5, Math.floor(game.heat / 12));
   if (newWanted > game.wanted) {
     game.wanted = newWanted;
     if (game.wanted === 1) audio.startSiren();
   }
-
-  // spawn cops based on wanted level
   game.copTimer -= dt;
   if (game.wanted > 0 && cops.length < game.wanted + 1 && game.copTimer <= 0) {
     spawnCop();
@@ -705,24 +866,20 @@ function updatePolice(dt, phw, phl) {
   const t = performance.now() * 0.006;
   for (let i = cops.length - 1; i >= 0; i--) {
     const cop = cops[i];
-    // flashing lights
     const bar = cop.userData.bar;
     if (bar) {
       bar.userData.redMat.emissiveIntensity = Math.sin(t) > 0 ? 3 : 0.2;
       bar.userData.blueMat.emissiveIntensity = Math.sin(t) > 0 ? 0.2 : 3;
     }
-    // chase: close in when player is slow / not boosting, fall back on nitro
     const usingNitro = input.nitro && game.nitro > 0;
     let closing = 5 + game.wanted * 1.5 - (game.speed - CONFIG.baseSpeed) * 0.28;
-    if (usingNitro) closing -= 34;
-    cop.position.z -= closing * dt; // negative z = catching up toward player
+    if (usingNitro || game.boostBurst > 0) closing -= 34;
+    cop.position.z -= closing * dt;
     cop.position.x = THREE.MathUtils.lerp(cop.position.x, player.position.x, dt * 1.6);
-
     if (hits(player.position.x, player.position.z, phw, phl, cop.position.x, cop.position.z, 0.95, 2.2)) {
       endGame();
       return;
     }
-    // escaped ahead
     if (cop.position.z < -70) {
       scene.remove(cop);
       cops.splice(i, 1);
@@ -738,13 +895,12 @@ function updatePolice(dt, phw, phl) {
   }
 }
 
-function updateCamera(dt, usingNitro) {
-  const shake = usingNitro ? 0.09 : 0.025;
+function updateCamera(dt, hot) {
+  const shake = hot ? 0.09 : 0.025;
   camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
   camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
   camera.position.z = camBase.z;
   camera.lookAt(player.position.x * 0.4, 1.2, -14);
-  // dynamic FOV pumps with speed for a sense of velocity
   const speedT = (game.speed - CONFIG.baseSpeed) / (CONFIG.maxSpeed + CONFIG.nitroBoost - CONFIG.baseSpeed);
   const targetFov = 64 + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;
@@ -754,7 +910,7 @@ function updateCamera(dt, usingNitro) {
 function updateSpeedFx(usingNitro) {
   const speedT = THREE.MathUtils.clamp((game.speed - CONFIG.baseSpeed) / (CONFIG.maxSpeed - CONFIG.baseSpeed), 0, 1);
   ui.speedlines.style.opacity = (speedT * 0.55 + (usingNitro ? 0.35 : 0)).toFixed(2);
-  ui.vignette.style.opacity = (usingNitro ? 0.7 : speedT * 0.3).toFixed(2);
+  ui.vignette.style.opacity = (usingNitro || game.boostBurst > 0 ? 0.7 : speedT * 0.3).toFixed(2);
 }
 
 function updateHud() {
@@ -770,7 +926,7 @@ function updateHud() {
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   update(dt);
-  renderer.render(scene, camera);
+  composer.render();
   requestAnimationFrame(animate);
 }
 
@@ -778,6 +934,8 @@ function resize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  bloom.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -788,12 +946,12 @@ resize();
 ui.best.textContent = save.best;
 ui.bank.textContent = save.bank;
 loadSelectedCar();
-applyDayNight();
+applyEnvironment(1);
 for (let i = 0; i < 6; i++) {
   spawnPropRow();
   spawnBuilding();
+  spawnMountain();
 }
-for (const p of props) p.position.z += Math.random() * 200 - 100;
-for (const b of buildings) b.position.z += Math.random() * 200 - 100;
+for (const arr of [props, buildings, mountains]) for (const o of arr) o.position.z += Math.random() * 200 - 100;
 ui.loader.classList.add('hidden');
 animate();

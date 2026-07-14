@@ -389,3 +389,165 @@ export function buildBuilding() {
   group.userData = { windows, winMat };
   return group;
 }
+
+/* ------------------------------------------------------------------ */
+/* Biome scenery                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Tall tropical palm for the jungle biome. */
+export function buildPalm() {
+  const g = new THREE.Group();
+  const trunk = boxMesh(0.28, 3.2, 0.28, 0x6b4a24, { roughness: 1 });
+  trunk.position.y = 1.6;
+  trunk.rotation.z = (Math.random() - 0.5) * 0.2;
+  g.add(trunk);
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x2fae4f, roughness: 1 });
+  for (let i = 0; i < 6; i++) {
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.35, 2.0, 5), leafMat);
+    const a = (i / 6) * Math.PI * 2;
+    leaf.position.set(Math.cos(a) * 0.7, 3.1, Math.sin(a) * 0.7);
+    leaf.rotation.z = Math.cos(a) * 0.9;
+    leaf.rotation.x = Math.sin(a) * 0.9;
+    leaf.castShadow = true;
+    g.add(leaf);
+  }
+  return g;
+}
+
+/** Leafy bush cluster (jungle undergrowth). */
+export function buildBush() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1f7a35, roughness: 1 });
+  for (let i = 0; i < 3; i++) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.6 + Math.random() * 0.5, 8, 8), mat);
+    s.position.set((Math.random() - 0.5) * 1.2, 0.5, (Math.random() - 0.5) * 1.2);
+    s.castShadow = true;
+    g.add(s);
+  }
+  return g;
+}
+
+/** Desert rock. */
+export function buildRock() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x8a7a63, roughness: 1, flatShading: true });
+  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0), mat);
+  rock.position.y = 0.4;
+  rock.rotation.set(Math.random(), Math.random(), Math.random());
+  rock.castShadow = true;
+  return rock;
+}
+
+/** Saguaro-style cactus. */
+export function buildCactus() {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x2f7d4a, roughness: 0.9 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 3, 10), mat);
+  body.position.y = 1.5;
+  body.castShadow = true;
+  g.add(body);
+  for (const side of [-1, 1]) {
+    if (Math.random() < 0.5) continue;
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.1, 8), mat);
+    arm.position.set(side * 0.45, 1.7 + Math.random() * 0.6, 0);
+    arm.rotation.z = side * 0.9;
+    g.add(arm);
+  }
+  return g;
+}
+
+/** A long, distant mountain ridge chunk that scrolls on the horizon. */
+export function buildMountainRidge(tint = 0x394b63) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: tint, roughness: 1, flatShading: true });
+  for (let i = 0; i < 5; i++) {
+    const h = 16 + Math.random() * 34;
+    const peak = new THREE.Mesh(new THREE.ConeGeometry(10 + Math.random() * 10, h, 5), mat);
+    peak.position.set((Math.random() - 0.5) * 8, h / 2, i * 22 - 44);
+    g.add(peak);
+  }
+  g.userData.length = 120;
+  return g;
+}
+
+/** Neon arch spanning the road (Fast & Furious street-race vibe). */
+export function buildArch(color = 0x2de2e6) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.2, roughness: 0.3 });
+  const barW = 0.4;
+  const span = 12;
+  const top = new THREE.Mesh(new THREE.BoxGeometry(span, barW, barW), mat);
+  top.position.y = 6.4;
+  g.add(top);
+  for (const side of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(barW, 6.4, barW), mat);
+    post.position.set(side * (span / 2 - 0.2), 3.2, 0);
+    g.add(post);
+  }
+  g.userData.mat = mat;
+  return g;
+}
+
+/** Roadside neon billboard. */
+export function buildBillboard() {
+  const g = new THREE.Group();
+  const pole = boxMesh(0.2, 4, 0.2, 0x2a2d34, { metalness: 0.6 });
+  pole.position.y = 2;
+  g.add(pole);
+  const colors = [0xff2a6d, 0x2de2e6, 0xffd23f, 0x9b4dd2];
+  const c = colors[(Math.random() * colors.length) | 0];
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 2, 0.15),
+    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.6, roughness: 0.4 })
+  );
+  panel.position.set(0, 4.6, 0);
+  g.add(panel);
+  return g;
+}
+
+/** A glowing boost pad laid on the road. Returns mesh with userData.mat. */
+export function buildBoostPad() {
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2de2e6,
+    emissive: 0x2de2e6,
+    emissiveIntensity: 2.4,
+    transparent: true,
+    opacity: 0.9
+  });
+  const pad = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 4), mat);
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.y = 0.05;
+  // chevrons — kept flat on the pad (lifted slightly along local normal)
+  const chevMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 2 });
+  for (let i = 0; i < 3; i++) {
+    const chev = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.4), chevMat);
+    chev.position.set(0, -1.2 + i * 1.2, 0.02);
+    pad.add(chev);
+  }
+  pad.userData.mat = mat;
+  return pad;
+}
+
+/** A dome of stars for the night sky. Opacity is driven by night factor. */
+export function makeStarfield(count = 700) {
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 220 + Math.random() * 140;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 0.5;
+    pos[i * 3] = Math.cos(theta) * Math.sin(phi) * r;
+    pos[i * 3 + 1] = Math.cos(phi) * r * 0.7 + 30;
+    pos[i * 3 + 2] = -Math.abs(Math.sin(theta) * Math.sin(phi)) * r - 60;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 1.6,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    fog: false
+  });
+  return new THREE.Points(geo, mat);
+}

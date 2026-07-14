@@ -79,11 +79,18 @@ body {
   font-weight: 900;
   letter-spacing: 2px;
   line-height: 0.9;
-  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--cyan), var(--accent-2));
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   text-shadow: 0 4px 30px rgba(255, 122, 26, 0.35);
+  animation: titleShift 5s linear infinite;
+}
+@keyframes titleShift {
+  to {
+    background-position: 300% 0;
+  }
 }
 .title span {
   display: block;
@@ -522,6 +529,66 @@ body {
 .car-btn.disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ---------- Biome banner ---------- */
+.biome-banner {
+  position: absolute;
+  top: 26%;
+  left: 0;
+  right: 0;
+  z-index: 12;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+}
+.biome-banner.show {
+  animation: bannerIn 2.6s ease forwards;
+}
+.banner-name {
+  font-size: clamp(30px, 9vw, 58px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, var(--cyan), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 30px rgba(45, 226, 230, 0.5);
+}
+.banner-tag {
+  font-size: 14px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+@keyframes bannerIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+    filter: blur(6px);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+/* ---------- Splash ---------- */
+.splash {
+  background: radial-gradient(120% 120% at 50% 30%, #142046 0%, #070b16 70%);
+  gap: 20px;
+}
+.splash-title {
+  margin-bottom: 6px;
 }
 
 /* Hide touch controls on devices with a real pointer/keyboard */

@@ -24,12 +24,40 @@ installable **debug APK** in the cloud and publishes it to the repo's Releases.
 3. Tap the file → if prompted, allow **"Install unknown apps"** for your browser → **Install**.
 
 > First build takes a few minutes. You can watch progress under the repo's **Actions** tab.
-> (This is a debug build for sideloading — for a Play Store release, see the signing steps below.)
+> (This is a debug build for sideloading — for a Play Store release, see below.)
+
+---
+
+## 🏬 Publish to the Google Play Store (signed release)
+
+The **Play Store requires a signed release build** (an `.aab`). Two workflows automate this
+entirely in the cloud — no Android tooling needed on your PC:
+
+**Step 1 — Create your signing keystore (run once):**
+1. Repo → **Actions** → **"Generate Android Keystore"** → **Run workflow**.
+2. When it finishes, open the run and **download the `android-keystore-KEEP-SAFE` artifact**.
+   It contains your `keystore.jks` and a `CREDENTIALS.txt`. **Keep these private & backed up** —
+   losing them means you can never update the app on Play again.
+3. In the repo → **Settings → Secrets and variables → Actions**, add the 4 secrets listed in
+   `CREDENTIALS.txt`: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
+
+**Step 2 — Build the signed release:**
+- Repo → **Actions** → **"Build Signed Release (Play Store)"** → **Run workflow**.
+- Download **`fortuner-rush.aab`** from the run (or the `playstore-latest` Release) and upload it
+  in the [Google Play Console](https://play.google.com/console) (needs a one-time **$25**
+  developer account) under your app → **Production → Create release**.
+
+> You'll also need a store listing (title, description, screenshots) and a privacy policy —
+> standard Play Console steps, no code required.
 
 ---
 
 ## ✨ Features
 
+- 🌆 **3 changing biomes** — **Neon City**, **Jungle Run**, **Desert Hills** — with unique
+  scenery (buildings, palms, cacti, rocks), distant mountains, and smooth palette transitions
+- 🌈 **Neon bloom post-processing** — glowing headlights, coins, arches & boost pads
+- ⚡ **Boost pads** + roadside **neon arches** & billboards for that street-race feel
 - 🚗 **4 unlockable cars** in a **Garage** — Fortuner SUV, Neon Speedster, Charger R/T,
   Velocity X — each with unique **speed / acceleration / handling** stats
 - 🪙 **Coin economy**: bank coins between runs to buy faster cars (progress is saved)
@@ -37,13 +65,14 @@ installable **debug APK** in the cloud and publishes it to the repo's Releases.
 - 🚓 **Police chase & wanted level** (★–★★★★★) — cop cars with flashing lights hunt you and
   fall back when you nitro; lose them to cut your heat
 - 🔥 **Nitro boost** with rechargeable meter, exhaust flame, sparks & camera shake
-- 🏙️ **Neon night city** — buildings with lit windows, streetlights, moon/sun, day↔night cycle
-- ⚡ **Real sense of speed** — dynamic FOV, speed-line & vignette overlays, screen shake
+- 🌅 Dynamic **day ↔ night** cycle with a starry night sky, moon/sun, headlights & city lights
+- 💨 **Real sense of speed** — dynamic FOV, speed-line & vignette overlays, screen shake
 - ✨ **Particle FX** — coin bursts, nitro sparks, crash debris
+- 🎨 **Flashy UI** — animated gradient title, biome intro banners, combo popups, splash screen
 - 🎮 Multi-input controls: **keyboard**, **on-screen buttons**, and **phone tilt**
 - 🔊 Zero-file **WebAudio** — engine drone, turbo whoosh, siren, coin & crash SFX
 - 🏆 Persistent **best score** & coin bank (localStorage)
-- 📱 Mobile-first, responsive, safe-area aware UI
+- 📱 Mobile-first, responsive, safe-area aware UI, **custom app icon & splash**
 
 ---
 
@@ -126,12 +155,18 @@ In Xcode: pick a simulator/device and **Run ▶**, or **Product → Archive** to
 ├── index.html            # App shell, HUD, menus, touch controls
 ├── vite.config.js        # Vite config (relative base for Capacitor WebView)
 ├── capacitor.config.json # Native app id / name / web dir
+├── assets/
+│   └── logo.svg          # Source art for the app icon & splash (@capacitor/assets)
+├── .github/workflows/
+│   ├── android.yml       # Cloud-build debug APK -> Releases (android-latest)
+│   ├── generate-keystore.yml  # One-time: create signing keystore
+│   └── release.yml       # Build signed .aab/.apk for the Play Store
 ├── src/
-│   ├── main.js           # Engine, world, game loop, garage, combos, police, FX
-│   ├── models.js         # Procedural 3D models (cars, cops, coins, city, props)
+│   ├── main.js           # Engine, biomes, bloom, game loop, garage, combos, police
+│   ├── models.js         # Procedural 3D models (cars, cops, biomes, city, props)
 │   ├── particles.js      # Pooled particle bursts (coins, nitro, crash)
 │   ├── audio.js          # WebAudio SFX (engine, turbo, siren, coin, crash)
-│   └── style.css         # UI / HUD / garage styling
+│   └── style.css         # UI / HUD / garage / banner styling
 └── README.md
 ```
 
