@@ -337,6 +337,19 @@ export function buildTrafficCar() {
   return car;
 }
 
+/** A rival racer using one of the hero car bodies (for a real race pack). */
+export function buildRivalCar() {
+  const builders = [buildSportsCar, buildMuscleCar, buildSuperCar];
+  const colors = [0xff2a6d, 0x22c55e, 0x1560ff, 0xffd23f, 0xff7a1a, 0x9b4dd2, 0xffffff, 0x111111];
+  const build = builders[(Math.random() * builders.length) | 0];
+  const { group } = build(colors[(Math.random() * colors.length) | 0]);
+  group.rotation.y = Math.PI; // face the travel direction (-Z)
+  const wrap = new THREE.Group();
+  wrap.add(group);
+  wrap.userData.length = 4.5;
+  return wrap;
+}
+
 /** Police interceptor with a flashing light bar. Returns { group, bar }. */
 export function buildCopCar() {
   const car = new THREE.Group();

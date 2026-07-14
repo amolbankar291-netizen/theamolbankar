@@ -6,6 +6,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import {
   CARS,
   buildTrafficCar,
+  buildRivalCar,
   buildCopCar,
   buildCoin,
   buildProp,
@@ -139,7 +140,7 @@ camera.add(mirror);
 // Post-processing: neon bloom
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.7, 0.6, 0.82);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.7, 0.78);
 composer.addPass(bloom);
 
 // ---------- Lighting ----------
@@ -279,6 +280,7 @@ const mountains = [];
 const arches = [];
 const boostpads = [];
 const rails = [];
+const rivals = [];
 const particles = new Particles(scene);
 
 function spawnTraffic() {
@@ -354,6 +356,15 @@ function spawnBoostPad() {
   pad.userData.used = false;
   scene.add(pad);
   boostpads.push(pad);
+}
+function spawnRival() {
+  const car = buildRivalCar();
+  const lane = (Math.random() * CONFIG.laneCount) | 0;
+  car.position.set(lanePositions[lane], 0.55, CONFIG.spawnZ - Math.random() * 60);
+  // rivals drive fast; the player overtakes the slower ones (a race pack)
+  car.userData.speed = 58 + Math.random() * 26;
+  scene.add(car);
+  rivals.push(car);
 }
 function spawnRail() {
   for (const side of [-1, 1]) {
@@ -455,6 +466,7 @@ const game = {
   archTimer: 0,
   boostTimer: 0,
   railTimer: 0,
+  rivalTimer: 3,
   biome: 0,
   nextBiomeAt: CONFIG.biomeDistance,
   boostBurst: 0
@@ -481,7 +493,7 @@ function setBiomeTarget() {
 setBiomeTarget();
 
 function clearWorld() {
-  for (const arr of [traffic, coins, props, buildings, cops, mountains, arches, boostpads, rails]) {
+  for (const arr of [traffic, coins, props, buildings, cops, mountains, arches, boostpads, rails, rivals]) {
     for (const o of arr) scene.remove(o);
     arr.length = 0;
   }
@@ -509,6 +521,7 @@ function resetGameVars() {
     archTimer: 0,
     boostTimer: 0,
     railTimer: 0,
+    rivalTimer: 3,
     biome: 0,
     nextBiomeAt: CONFIG.biomeDistance,
     boostBurst: 0
@@ -810,6 +823,25 @@ function update(dt) {
     if (car.position.z > CONFIG.despawnZ) {
       scene.remove(car);
       traffic.splice(i, 1);
+    }
+  }
+
+  // ---- Rival racers (the pack you race against) ----
+  game.rivalTimer -= dt;
+  if (game.rivalTimer <= 0 && rivals.length < 4) {
+    spawnRival();
+    game.rivalTimer = 3.5 + Math.random() * 4;
+  }
+  for (let i = rivals.length - 1; i >= 0; i--) {
+    const r = rivals[i];
+    r.position.z += (game.speed - r.userData.speed) * dt;
+    if (hits(player.position.x, player.position.z, phw, phl, r.position.x, r.position.z, 0.95, 2.25)) {
+      endGame();
+      return;
+    }
+    if (r.position.z > CONFIG.despawnZ) {
+      scene.remove(r);
+      rivals.splice(i, 1);
     }
   }
 

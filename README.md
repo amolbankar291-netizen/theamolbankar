@@ -54,6 +54,8 @@ entirely in the cloud — no Android tooling needed on your PC:
 
 ## ✨ Features
 
+- 🏆 **Rival racer pack** — hero-styled sports/muscle/super cars race alongside you to overtake
+- 🖼️ **Cinematic key-art menu** & splash background
 - 🪟 **Cockpit (sit-inside) view** — first-person driver's seat with windshield frame,
   dashboard and a **steering wheel that turns as you steer** (toggle Chase ⇄ Cockpit)
 - 🔍 **Working rear-view mirror** — a real live render of the traffic and **cop cars behind you**

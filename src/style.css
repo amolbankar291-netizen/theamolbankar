@@ -601,9 +601,19 @@ body {
   }
 }
 
+/* ---------- Key-art backdrop for menu / game-over / splash ---------- */
+#menu,
+#gameover,
+#loader {
+  background-image: linear-gradient(rgba(7, 11, 22, 0.7), rgba(7, 11, 22, 0.92)),
+    url('./keyart.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 /* ---------- Splash ---------- */
 .splash {
-  background: radial-gradient(120% 120% at 50% 30%, #142046 0%, #070b16 70%);
   gap: 20px;
 }
 .splash-title {
