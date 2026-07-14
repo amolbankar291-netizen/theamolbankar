@@ -145,7 +145,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.02;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0b1020, 60, 210);
@@ -182,13 +182,13 @@ camera.add(mirror);
 // Post-processing: neon bloom
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.7, 0.78);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.65, 0.6, 0.82);
 composer.addPass(bloom);
 
 // ---------- Lighting ----------
-const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x243046, 0.9);
+const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x243046, 0.6);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffffff, 1.9);
+const sun = new THREE.DirectionalLight(0xffffff, 1.5);
 sun.position.set(18, 40, 10);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
