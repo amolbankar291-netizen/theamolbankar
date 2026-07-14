@@ -280,7 +280,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 12px;
+  padding: 0 10px;
   pointer-events: none;
 }
 /* Right pedals are placed as an absolute cluster so GAS is never clipped. */
@@ -291,7 +291,7 @@ body {
 }
 .pad-right {
   position: relative;
-  width: 190px;
+  width: 202px;
   height: 172px;
 }
 .pad-right .touch-btn {
@@ -319,32 +319,30 @@ body {
   filter: brightness(1.25);
 }
 .touch-btn.steer {
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
   background: rgba(45, 226, 230, 0.28);
   border-color: rgba(45, 226, 230, 0.7);
 }
 .touch-btn.gas {
-  width: 106px;
-  height: 106px;
+  width: 104px;
+  height: 104px;
   right: 0;
   bottom: 0;
-  font-size: 24px;
-  letter-spacing: 1px;
-  background: rgba(46, 204, 90, 0.78);
+  font-size: 56px;
+  background: rgba(46, 204, 90, 0.72);
   border-color: #6dffa2;
-  color: #04170a;
+  color: #eafff1;
 }
 .touch-btn.brake {
-  width: 80px;
-  height: 80px;
+  width: 92px;
+  height: 92px;
   left: 0;
   bottom: 0;
-  font-size: 17px;
-  letter-spacing: 1px;
-  background: rgba(226, 58, 58, 0.78);
+  font-size: 50px;
+  background: rgba(226, 58, 58, 0.72);
   border-color: #ff8a8a;
-  color: #1a0303;
+  color: #fff0f0;
 }
 .touch-btn.nitro {
   width: 58px;

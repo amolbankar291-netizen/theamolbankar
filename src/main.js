@@ -155,7 +155,7 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 600);
-const camBase = new THREE.Vector3(0, 6.3, 13.8);
+const camBase = new THREE.Vector3(0, 5.7, 12.6);
 camera.position.copy(camBase);
 camera.layers.enable(1); // layer 1 = HUD mirror plane
 scene.add(camera); // so camera-attached mirror renders
@@ -536,8 +536,9 @@ function spawnRival(z) {
   const lane = (Math.random() * CONFIG.laneCount) | 0;
   const zz = z !== undefined ? z : CONFIG.spawnZ - Math.random() * 60;
   car.position.set(lanePositions[lane], 0.55, zz);
-  // rivals drive fast; the player overtakes the slower ones (a race pack)
-  car.userData.speed = 42 + Math.random() * 22;
+  // Rivals cruise a bit slower than the player so you keep catching & passing
+  // them — this keeps a visible pack of cars on the road ahead.
+  car.userData.speed = 28 + Math.random() * 20;
   scene.add(car);
   rivals.push(car);
 }
@@ -728,8 +729,8 @@ function startGame() {
   ui.touch.classList.remove('hidden');
   audio.init();
   audio.resume();
-  // Seed a visible pack of opponents ahead so the race feels alive at once
-  for (let i = 0; i < 4; i++) spawnRival(-35 - i * 22 - Math.random() * 10);
+  // Seed a visible pack of opponents just ahead so the race feels alive at once
+  for (let i = 0; i < 5; i++) spawnRival(-20 - i * 14 - Math.random() * 8);
   const t = TRACKS[game.track];
   showBanner(t.name, t.tag);
 }
@@ -1144,9 +1145,9 @@ function update(dt) {
 
   // ---- Rival racers (the pack you race against) ----
   game.rivalTimer -= dt;
-  if (game.rivalTimer <= 0 && rivals.length < 6) {
+  if (game.rivalTimer <= 0 && rivals.length < 7) {
     spawnRival();
-    game.rivalTimer = 1.6 + Math.random() * 2.2;
+    game.rivalTimer = 1.1 + Math.random() * 1.6;
   }
   for (let i = rivals.length - 1; i >= 0; i--) {
     const r = rivals[i];
@@ -1364,8 +1365,8 @@ function updateCamera(dt, hot) {
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
     camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
     camera.position.z = camBase.z;
-    camera.lookAt(player.position.x * 0.4, 1.6, -20);
-    baseFov = 62;
+    camera.lookAt(player.position.x * 0.4, 1.4, -19);
+    baseFov = 60;
   }
   const targetFov = baseFov + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;
