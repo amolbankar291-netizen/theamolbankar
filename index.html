@@ -45,6 +45,10 @@
           <div class="nitro-label">NITRO</div>
           <div class="nitro-bar"><div id="nitro-fill" class="nitro-fill"></div></div>
         </div>
+        <div class="track-progress">
+          <span class="track-progress-label">TRACK</span>
+          <div class="track-progress-bar"><div id="track-fill" class="track-progress-fill"></div></div>
+        </div>
         <button id="btn-view" class="btn-view">🎥 Chase</button>
       </div>
 
@@ -96,6 +100,7 @@
             <div>🪙 <b id="bank-coins">0</b></div>
           </div>
           <button id="btn-play" class="btn-primary">▶ RACE</button>
+          <button id="btn-tracks" class="btn-secondary">🗺️ TRACKS</button>
           <button id="btn-garage" class="btn-secondary">🚗 GARAGE</button>
           <div class="hint">
             <p>Steer <b>← →</b> · Gas <b>↑/W</b> · Brake <b>↓/S</b> · Nitro <b>Space</b></p>
@@ -112,7 +117,36 @@
             <div class="garage-bank">🪙 <b id="garage-bank">0</b></div>
           </div>
           <div id="car-list" class="car-list"></div>
+          <div class="color-head">🎨 BODY COLOUR</div>
+          <div id="color-list" class="color-list"></div>
           <button id="btn-garage-back" class="btn-secondary">‹ BACK</button>
+        </div>
+      </div>
+
+      <!-- Track select screen -->
+      <div id="tracks" class="overlay hidden">
+        <div class="panel garage-panel">
+          <div class="garage-head">
+            <h2 class="go-title" style="margin:0">TRACKS</h2>
+          </div>
+          <div id="track-list" class="track-list"></div>
+          <button id="btn-tracks-back" class="btn-secondary">‹ BACK</button>
+        </div>
+      </div>
+
+      <!-- Win screen -->
+      <div id="win" class="overlay hidden">
+        <div class="panel">
+          <h2 class="go-title win-title">TRACK CLEARED!</h2>
+          <div class="win-sub"><b id="win-track">CITY HIGHWAY</b></div>
+          <div class="go-stats">
+            <div><span>Score</span><b id="win-score">0</b></div>
+            <div><span>Coins</span><b id="win-coins">0</b></div>
+          </div>
+          <div id="win-unlock" class="newbest hidden">🔓 Unlocked</div>
+          <button id="btn-next-track" class="btn-primary hidden">▶ NEXT TRACK</button>
+          <button id="btn-win-retry" class="btn-secondary">↻ RACE AGAIN</button>
+          <button id="btn-win-menu" class="btn-secondary">MENU</button>
         </div>
       </div>
 

@@ -57,11 +57,41 @@ for (let i = 0; i < CONFIG.laneCount; i++) {
   lanePositions.push(-roadHalf + CONFIG.laneWidth * (i + 0.5));
 }
 
-// ---------- Biomes ----------
+// ---------- Biomes (visual palettes / terrain) ----------
 const BIOMES = [
   { name: 'NEON CITY', tag: 'Downtown lights', ground: 0x1a1f2e, skyDay: 0x8fb4ff, skyNight: 0x0a0f1e, fogDay: 0xaecbff, fogNight: 0x0a0f1e, mtn: 0x2a3550, prop: 'city' },
+  { name: 'OPEN HIGHWAY', tag: 'Full throttle', ground: 0x2b2f3a, skyDay: 0x9fc0ff, skyNight: 0x0b1120, fogDay: 0xc2d6ff, fogNight: 0x0b1120, mtn: 0x39445c, prop: 'highway' },
   { name: 'JUNGLE RUN', tag: 'Into the wild', ground: 0x1f4d24, skyDay: 0x9fe6c6, skyNight: 0x081810, fogDay: 0xbfeecf, fogNight: 0x08160f, mtn: 0x1f5a33, prop: 'jungle' },
-  { name: 'DESERT HILLS', tag: 'Sun & dust', ground: 0x8a6a3a, skyDay: 0xffd39a, skyNight: 0x1c1226, fogDay: 0xffdca8, fogNight: 0x1a1020, mtn: 0x7a5a3a, prop: 'hills' }
+  { name: 'DESERT HILLS', tag: 'Sun & dust', ground: 0x8a6a3a, skyDay: 0xffd39a, skyNight: 0x1c1226, fogDay: 0xffdca8, fogNight: 0x1a1020, mtn: 0x7a5a3a, prop: 'hills' },
+  { name: 'MUD TRAIL', tag: 'Off-road mayhem', ground: 0x4a3826, skyDay: 0xa9b0a0, skyNight: 0x14110c, fogDay: 0xbcc0ad, fogNight: 0x140f0a, mtn: 0x3d3020, prop: 'mud' },
+  { name: 'ICE PASS', tag: 'Frozen edge', ground: 0xd2dced, skyDay: 0xdce9ff, skyNight: 0x142033, fogDay: 0xe8f2ff, fogNight: 0x16233a, mtn: 0xaebfd6, prop: 'ice' }
+];
+
+// ---------- Tracks (selectable; unlocked by winning the previous one) ----------
+const TRACKS = [
+  { key: 'city', biome: 0, name: 'CITY HIGHWAY', tag: 'Neon downtown', goal: 1500 },
+  { key: 'highway', biome: 1, name: 'OPEN HIGHWAY', tag: 'Full throttle', goal: 1800 },
+  { key: 'jungle', biome: 2, name: 'JUNGLE RUN', tag: 'Into the wild', goal: 2100 },
+  { key: 'hills', biome: 3, name: 'DESERT HILLS', tag: 'Sun & dust', goal: 2400 },
+  { key: 'mud', biome: 4, name: 'MUD TRAIL', tag: 'Off-road mayhem', goal: 2700 },
+  { key: 'ice', biome: 5, name: 'ICE PASS', tag: 'Frozen edge', goal: 3000 },
+  { key: 'all', mixed: true, name: 'ALL TERRAIN', tag: 'Every biome, no limits', goal: 4200 }
+];
+
+// ---------- Selectable body colours ----------
+const BODY_COLORS = [
+  { name: 'Pearl White', hex: 0xffffff },
+  { name: 'Jet Black', hex: 0x0c0d10 },
+  { name: 'Gunmetal', hex: 0x3a3f47 },
+  { name: 'Silver', hex: 0xc4cad2 },
+  { name: 'Racing Red', hex: 0xd8231f },
+  { name: 'Electric Blue', hex: 0x1560ff },
+  { name: 'Midnight Navy', hex: 0x14213d },
+  { name: 'Forest Green', hex: 0x1f7a44 },
+  { name: 'Sunset Orange', hex: 0xff6a1a },
+  { name: 'Golden', hex: 0xe0a92e },
+  { name: 'Purple Haze', hex: 0x7b3ff2 },
+  { name: 'Bronze', hex: 0x8a5a2b }
 ];
 
 // ---------- DOM ----------
@@ -81,6 +111,16 @@ const ui = {
   bannerTag: el('banner-tag'),
   menu: el('menu'),
   garage: el('garage'),
+  tracks: el('tracks'),
+  trackList: el('track-list'),
+  win: el('win'),
+  winUnlock: el('win-unlock'),
+  winScore: el('win-score'),
+  winCoins: el('win-coins'),
+  winTrack: el('win-track'),
+  btnNextTrack: el('btn-next-track'),
+  colorList: el('color-list'),
+  trackFill: el('track-fill'),
   gameover: el('gameover'),
   loader: el('loader'),
   best: el('best-score'),
@@ -226,13 +266,25 @@ const save = {
   best: Number(localStorage.getItem('fr_best') || 0),
   bank: Number(localStorage.getItem('fr_bank') || 0),
   owned: JSON.parse(localStorage.getItem('fr_owned') || '["fortuner"]'),
-  selected: localStorage.getItem('fr_selected') || 'fortuner'
+  selected: localStorage.getItem('fr_selected') || 'fortuner',
+  colors: JSON.parse(localStorage.getItem('fr_colors') || '{}'),
+  unlocked: JSON.parse(localStorage.getItem('fr_unlocked') || '[0]'),
+  track: Number(localStorage.getItem('fr_track') || 0)
 };
 function persist() {
   localStorage.setItem('fr_best', String(save.best));
   localStorage.setItem('fr_bank', String(save.bank));
   localStorage.setItem('fr_owned', JSON.stringify(save.owned));
   localStorage.setItem('fr_selected', save.selected);
+  localStorage.setItem('fr_colors', JSON.stringify(save.colors));
+  localStorage.setItem('fr_unlocked', JSON.stringify(save.unlocked));
+  localStorage.setItem('fr_track', String(save.track));
+}
+function carColor(id) {
+  const c = save.colors[id];
+  if (c !== undefined && c !== null) return c;
+  const car = CARS.find((x) => x.id === id);
+  return car ? car.color : 0xffffff;
 }
 
 // ---------- Player ----------
@@ -249,7 +301,7 @@ const flameMat = new THREE.MeshStandardMaterial({
 function loadSelectedCar() {
   scene.remove(player);
   playerStats = CARS.find((c) => c.id === save.selected) || CARS[0];
-  const built = playerStats.build(playerStats.color);
+  const built = playerStats.build(carColor(playerStats.id));
   // Models are authored with the front at +Z; the car travels toward -Z,
   // so wrap the body in a container rotated 180° and steer the container.
   const body = built.group;
@@ -317,6 +369,11 @@ function spawnPropRow() {
       p = r < 0.5 ? buildPalm() : r < 0.8 ? buildProp('tree') : buildBush();
     } else if (biome === 'hills') {
       p = Math.random() < 0.55 ? buildRock() : buildCactus();
+    } else if (biome === 'mud') {
+      const r = Math.random();
+      p = r < 0.45 ? buildRock() : r < 0.8 ? buildBush() : buildProp('tree');
+    } else if (biome === 'ice') {
+      p = Math.random() < 0.55 ? buildProp('tree') : buildRock();
     } else {
       p = Math.random() < 0.55 ? buildProp('light') : buildBillboard();
     }
@@ -468,6 +525,10 @@ const game = {
   railTimer: 0,
   rivalTimer: 3,
   biome: 0,
+  track: 0,
+  mixed: false,
+  goal: 1500,
+  won: false,
   nextBiomeAt: CONFIG.biomeDistance,
   boostBurst: 0
 };
@@ -522,10 +583,15 @@ function resetGameVars() {
     boostTimer: 0,
     railTimer: 0,
     rivalTimer: 3,
-    biome: 0,
+    won: false,
     nextBiomeAt: CONFIG.biomeDistance,
     boostBurst: 0
   });
+  const t = TRACKS[save.track] || TRACKS[0];
+  game.track = save.track;
+  game.mixed = !!t.mixed;
+  game.biome = t.mixed ? 0 : t.biome;
+  game.goal = t.goal;
   setBiomeTarget();
 }
 
@@ -537,12 +603,15 @@ function startGame() {
   state = 'playing';
   ui.menu.classList.add('hidden');
   ui.garage.classList.add('hidden');
+  ui.tracks.classList.add('hidden');
   ui.gameover.classList.add('hidden');
+  ui.win.classList.add('hidden');
   ui.hud.classList.remove('hidden');
   ui.touch.classList.remove('hidden');
   audio.init();
   audio.resume();
-  showBanner(currentBiome().name, currentBiome().tag);
+  const t = TRACKS[game.track];
+  showBanner(t.name, t.tag);
 }
 
 function endGame() {
@@ -569,6 +638,42 @@ function endGame() {
   ui.gameover.classList.remove('hidden');
 }
 
+function winRun() {
+  state = 'win';
+  game.won = true;
+  audio.stopEngine();
+  audio.stopSiren();
+  audio.nitro();
+  const flame = player.userData.flame;
+  if (flame) flame.visible = false;
+  particles.burst(player.position, 0x2de2e6, 40, { speed: 10, life: 1.1 });
+  particles.burst(player.position, 0xffd23f, 30, { speed: 8, life: 1.0 });
+  save.bank += game.coins;
+  if (game.score > save.best) save.best = game.score;
+  // Unlock the next track
+  const next = save.track + 1;
+  const hasNext = next < TRACKS.length;
+  const newlyUnlocked = hasNext && !save.unlocked.includes(next);
+  if (newlyUnlocked) save.unlocked.push(next);
+  persist();
+  ui.winTrack.textContent = TRACKS[game.track].name;
+  ui.winScore.textContent = game.score;
+  ui.winCoins.textContent = game.coins;
+  if (hasNext) {
+    ui.btnNextTrack.classList.remove('hidden');
+    ui.btnNextTrack.dataset.track = String(next);
+    ui.winUnlock.textContent = newlyUnlocked ? `🔓 Unlocked: ${TRACKS[next].name}` : '';
+    ui.winUnlock.classList.toggle('hidden', !newlyUnlocked);
+  } else {
+    ui.btnNextTrack.classList.add('hidden');
+    ui.winUnlock.textContent = '🏁 All tracks cleared — you legend!';
+    ui.winUnlock.classList.remove('hidden');
+  }
+  ui.hud.classList.add('hidden');
+  ui.touch.classList.add('hidden');
+  ui.win.classList.remove('hidden');
+}
+
 // ---------- Garage UI ----------
 function renderGarage() {
   ui.garageBank.textContent = save.bank;
@@ -588,7 +693,7 @@ function renderGarage() {
       action = `<button class="car-btn buy${afford ? '' : ' disabled'}" data-buy="${car.id}" ${afford ? '' : 'disabled'}>🪙 ${car.price}</button>`;
     }
     card.innerHTML = `
-      <div class="car-swatch" style="background:#${car.color.toString(16).padStart(6, '0')}"></div>
+      <div class="car-swatch" style="background:#${carColor(car.id).toString(16).padStart(6, '0')}"></div>
       <div class="car-name">${car.name}</div>
       <div class="car-stats">
         ${stat('SPD', car.topSpeed)}
@@ -619,6 +724,57 @@ function renderGarage() {
       renderGarage();
     })
   );
+  renderColors();
+}
+
+function renderColors() {
+  if (!ui.colorList) return;
+  const current = carColor(save.selected);
+  ui.colorList.innerHTML = '';
+  for (const c of BODY_COLORS) {
+    const hexStr = '#' + c.hex.toString(16).padStart(6, '0');
+    const sw = document.createElement('button');
+    sw.className = 'color-swatch' + (c.hex === current ? ' active' : '');
+    sw.style.background = hexStr;
+    sw.title = c.name;
+    sw.setAttribute('aria-label', c.name);
+    sw.addEventListener('click', () => {
+      save.colors[save.selected] = c.hex;
+      persist();
+      renderGarage();
+    });
+    ui.colorList.appendChild(sw);
+  }
+}
+
+// ---------- Track select UI ----------
+function renderTracks() {
+  if (!ui.trackList) return;
+  ui.trackList.innerHTML = '';
+  TRACKS.forEach((t, i) => {
+    const unlocked = save.unlocked.includes(i);
+    const selected = save.track === i;
+    const card = document.createElement('div');
+    card.className = 'track-card' + (selected ? ' selected' : '') + (unlocked ? '' : ' locked');
+    const action = !unlocked
+      ? `<span class="track-lock">🔒 Win previous</span>`
+      : selected
+      ? `<button class="car-btn owned" disabled>SELECTED</button>`
+      : `<button class="car-btn select" data-track="${i}">SELECT</button>`;
+    card.innerHTML = `
+      <div class="track-name">${t.name}</div>
+      <div class="track-tag">${t.tag}</div>
+      <div class="track-goal">🏁 ${t.goal} m to win</div>
+      ${action}`;
+    ui.trackList.appendChild(card);
+  });
+  ui.trackList.querySelectorAll('[data-track]').forEach((b) =>
+    b.addEventListener('click', () => {
+      save.track = Number(b.dataset.track);
+      persist();
+      renderTracks();
+    })
+  );
 }
 
 // ---------- Buttons ----------
@@ -639,6 +795,15 @@ el('btn-garage-back').addEventListener('click', () => {
   ui.garage.classList.add('hidden');
   ui.menu.classList.remove('hidden');
 });
+el('btn-tracks').addEventListener('click', () => {
+  renderTracks();
+  ui.menu.classList.add('hidden');
+  ui.tracks.classList.remove('hidden');
+});
+el('btn-tracks-back').addEventListener('click', () => {
+  ui.tracks.classList.add('hidden');
+  ui.menu.classList.remove('hidden');
+});
 el('btn-retry').addEventListener('click', startGame);
 el('btn-menu').addEventListener('click', () => {
   state = 'menu';
@@ -646,6 +811,20 @@ el('btn-menu').addEventListener('click', () => {
   ui.bank.textContent = save.bank;
   ui.gameover.classList.add('hidden');
   ui.menu.classList.remove('hidden');
+});
+el('btn-win-menu').addEventListener('click', () => {
+  state = 'menu';
+  ui.best.textContent = save.best;
+  ui.bank.textContent = save.bank;
+  ui.win.classList.add('hidden');
+  ui.menu.classList.remove('hidden');
+});
+el('btn-win-retry').addEventListener('click', startGame);
+ui.btnNextTrack.addEventListener('click', () => {
+  const idx = Number(ui.btnNextTrack.dataset.track);
+  if (!Number.isNaN(idx) && save.unlocked.includes(idx)) save.track = idx;
+  persist();
+  startGame();
 });
 el('btn-view').addEventListener('click', () => setView(viewMode === 'chase' ? 'cockpit' : 'chase'));
 
@@ -758,13 +937,19 @@ function update(dt) {
   game.distance += move;
   game.dayTime = (game.dayTime + dt * 0.014) % 1;
 
-  // biome switch
-  if (game.distance >= game.nextBiomeAt) {
+  // On "All Terrain" the biome cycles as you drive; fixed tracks stay put.
+  if (game.mixed && game.distance >= game.nextBiomeAt) {
     game.biome = (game.biome + 1) % BIOMES.length;
     game.nextBiomeAt += CONFIG.biomeDistance;
     setBiomeTarget();
     showBanner(currentBiome().name, currentBiome().tag);
     game.nitro = Math.min(100, game.nitro + 25);
+  }
+
+  // Win when the track goal distance is reached.
+  if (!game.won && game.distance >= game.goal) {
+    winRun();
+    return;
   }
 
   // combo decay
@@ -1076,6 +1261,7 @@ function updateHud() {
   ui.mult.textContent = `x${game.mult.toFixed(1)}`;
   ui.mult.style.opacity = game.mult > 1 ? '1' : '0.4';
   ui.wanted.textContent = game.wanted > 0 ? '★'.repeat(game.wanted) : '';
+  if (ui.trackFill) ui.trackFill.style.width = `${Math.min(100, (game.distance / game.goal) * 100)}%`;
 }
 
 function animate() {

@@ -30,10 +30,10 @@ const GLASS = () =>
     opacity: 0.85
   });
 
-function makeWheels(group, bodyWidth, wheelZPositions, radius = 0.42, y = -0.28) {
+function makeWheels(group, bodyWidth, wheelZPositions, radius = 0.42, y = -0.28, rimColor = 0xcfd4dc) {
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, 0.34, 18);
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.9 });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xcfd4dc, metalness: 0.85, roughness: 0.25 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: rimColor, metalness: 0.85, roughness: 0.25 });
   const wheels = [];
   for (const z of wheelZPositions) {
     for (const side of [-1, 1]) {
@@ -84,6 +84,17 @@ export function buildFortuner(color = 0xffffff) {
   const cabin = boxMesh(1.72, 0.7, 2.5, color, { metalness: 0.4, roughness: 0.35 });
   cabin.position.set(0, 0.72, -0.15);
   car.add(cabin);
+  // Gloss-black roof (Legender two-tone look)
+  const roof = boxMesh(1.66, 0.14, 2.46, 0x0b0d12, { metalness: 0.5, roughness: 0.25 });
+  roof.position.set(0, 1.11, -0.15);
+  car.add(roof);
+  // Dark sport bumpers (front + rear valance)
+  const frontBumper = boxMesh(1.92, 0.34, 0.4, 0x14161c, { metalness: 0.5, roughness: 0.6 });
+  frontBumper.position.set(0, -0.18, 2.18);
+  car.add(frontBumper);
+  const rearBumper = boxMesh(1.92, 0.3, 0.36, 0x14161c, { metalness: 0.5, roughness: 0.6 });
+  rearBumper.position.set(0, -0.16, -2.16);
+  car.add(rearBumper);
   for (const side of [-1, 1]) {
     const rail = boxMesh(0.08, 0.06, 2.2, 0x1a1c22, { metalness: 0.6 });
     rail.position.set(side * 0.72, 1.09, -0.15);
@@ -178,7 +189,7 @@ export function buildFortuner(color = 0xffffff) {
   car.add(wheelRim);
 
   addLights(car, 2.36, -2.22, 0.2);
-  const wheels = makeWheels(car, 1.9, [1.45, -1.45], 0.44, -0.28);
+  const wheels = makeWheels(car, 1.9, [1.45, -1.45], 0.44, -0.28, 0x14161b); // black alloys
   return { group: car, wheels };
 }
 

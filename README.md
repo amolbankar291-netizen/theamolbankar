@@ -54,6 +54,10 @@ entirely in the cloud — no Android tooling needed on your PC:
 
 ## ✨ Features
 
+- 🚙 **Toyota-Fortuner-Legender-style hero SUV** with black two-tone roof & black alloys
+- 🎨 **Body-colour picker** — 12 finishes (Pearl White, Jet Black, Gunmetal, Racing Red, Electric Blue, and more)
+- 🗺️ **7 selectable tracks/terrains** — City Highway, Open Highway, Jungle, Desert Hills, Mud Trail, Ice Pass & All-Terrain
+- 🔓 **Track progression** — clear a track's goal distance to unlock the next one
 - 🏆 **Rival racer pack** — hero-styled sports/muscle/super cars race alongside you to overtake
 - 🖼️ **Cinematic key-art menu** & splash background
 - 🪟 **Cockpit (sit-inside) view** — first-person driver's seat with windshield frame,
