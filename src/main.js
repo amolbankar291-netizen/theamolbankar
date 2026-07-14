@@ -305,33 +305,10 @@ const gltfLoader = new GLTFLoader();
 const CAR_MODELS = { fortuner: suvUrl };
 let loadToken = 0;
 
-/** Tint the largest mesh (the body) of a loaded model and enable shadows. */
-function applyModelBodyColor(root, hex) {
-  let biggest = null;
-  let biggestVol = -1;
-  const s = new THREE.Vector3();
-  root.traverse((o) => {
-    if (o.isMesh && o.geometry) {
-      o.castShadow = true;
-      o.geometry.computeBoundingBox();
-      o.geometry.boundingBox.getSize(s);
-      const vol = s.x * s.y * s.z;
-      if (vol > biggestVol) {
-        biggestVol = vol;
-        biggest = o;
-      }
-    }
-  });
-  if (biggest && biggest.material) {
-    biggest.material = biggest.material.clone();
-    if (biggest.material.color) biggest.material.color = new THREE.Color(hex);
-    if ('metalness' in biggest.material) biggest.material.metalness = 0.5;
-    if ('roughness' in biggest.material) biggest.material.roughness = 0.35;
-    if ('envMapIntensity' in biggest.material) biggest.material.envMapIntensity = 1.4;
-  }
-}
-
-/** Normalise a loaded model to game scale, sit it on the road, find wheels. */
+/**
+ * Normalise a loaded model to game scale, sit it on the road, recolour the
+ * body, and return its wheel groups (all wheels + the steerable front pair).
+ */
 function configureCarModel(root, hex) {
   let box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());
@@ -342,12 +319,49 @@ function configureCarModel(root, hex) {
   root.position.x -= c.x;
   root.position.z -= c.z;
   root.position.y -= box.min.y; // rest wheels on wrapper's y=0
-  applyModelBodyColor(root, hex);
-  const wheels = [];
+
   root.traverse((o) => {
-    if (o.isMesh && /wheel|tire|tyre/i.test(o.name)) wheels.push(o);
+    if (!o.isMesh) return;
+    o.castShadow = true;
+    const m = o.material;
+    if (!m) return;
+    // The body panels use the "White" material — tint those to the chosen colour.
+    if (m.name === 'White') {
+      o.material = m.clone();
+      o.material.color = new THREE.Color(hex);
+      if ('metalness' in o.material) o.material.metalness = 0.5;
+      if ('roughness' in o.material) o.material.roughness = 0.3;
+      if ('envMapIntensity' in o.material) o.material.envMapIntensity = 1.4;
+    } else if ('envMapIntensity' in m) {
+      m.envMapIntensity = 1.15;
+    }
   });
-  return wheels;
+
+  const wheelNodes = [];
+  const steerNodes = [];
+  root.traverse((o) => {
+    if (!o.isMesh && /wheel/i.test(o.name)) {
+      wheelNodes.push(o);
+      if (/front/i.test(o.name)) steerNodes.push(o);
+    }
+  });
+  return { wheelNodes, steerNodes };
+}
+
+/** Wrap wheel meshes in yaw pivots so they can be steered (procedural cars). */
+function makeSteerPivots(wheelMeshes) {
+  const pivots = [];
+  for (const w of wheelMeshes) {
+    const parent = w.parent;
+    if (!parent) continue;
+    const pivot = new THREE.Group();
+    pivot.position.copy(w.position);
+    parent.add(pivot);
+    w.position.set(0, 0, 0);
+    pivot.add(w);
+    pivots.push(pivot);
+  }
+  return pivots;
 }
 
 function loadSelectedCar() {
@@ -367,6 +381,8 @@ function loadSelectedCar() {
   player.userData.headlights = body.userData.headlights;
   player.userData.windshield = body.userData.windshield;
   player.userData.body = body;
+  // Front wheels (first pair) steer left/right
+  player.userData.steer = makeSteerPivots(built.wheels.slice(0, 2));
 
   // Exhaust nitro flame at the rear (world +Z when facing -Z)
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 10), flameMat);
@@ -400,7 +416,7 @@ function loadSelectedCar() {
         if (token !== loadToken) return; // a newer car was picked meanwhile
         try {
           const root = gltf.scene;
-          const wheels = configureCarModel(root, hex);
+          const { wheelNodes, steerNodes } = configureCarModel(root, hex);
           const wrap = new THREE.Group();
           wrap.add(root);
           wrap.position.y = -0.45;
@@ -409,7 +425,8 @@ function loadSelectedCar() {
           player.add(wrap);
           player.userData.body = wrap;
           player.userData.windshield = null;
-          if (wheels.length) playerWheels = wheels;
+          if (wheelNodes.length) playerWheels = wheelNodes;
+          player.userData.steer = steerNodes.length ? steerNodes : null;
         } catch (_) {
           /* keep the procedural car */
         }
@@ -1090,6 +1107,8 @@ function update(dt) {
   player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, -dir * 0.2, dt * 8);
   player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, -dir * 0.12, dt * 8);
   for (const w of playerWheels) w.rotation.x -= move * 0.4;
+  const steerNodes = player.userData.steer;
+  if (steerNodes) for (const s of steerNodes) s.rotation.y = -steerSmooth * 0.5;
   roadTex.offset.y -= move / 16;
 
   const phw = 1.0;
