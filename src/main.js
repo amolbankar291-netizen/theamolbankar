@@ -155,7 +155,7 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 600);
-const camBase = new THREE.Vector3(0, 5.4, 10.8);
+const camBase = new THREE.Vector3(0, 6.3, 13.8);
 camera.position.copy(camBase);
 camera.layers.enable(1); // layer 1 = HUD mirror plane
 scene.add(camera); // so camera-attached mirror renders
@@ -1345,8 +1345,8 @@ function updateCamera(dt, hot) {
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
     camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
     camera.position.z = camBase.z;
-    camera.lookAt(player.position.x * 0.4, 1.2, -14);
-    baseFov = 64;
+    camera.lookAt(player.position.x * 0.4, 1.6, -20);
+    baseFov = 62;
   }
   const targetFov = baseFov + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;

@@ -273,20 +273,29 @@ body {
 /* ---------- Touch controls ---------- */
 #touch-controls {
   position: absolute;
-  bottom: calc(env(safe-area-inset-bottom) + 18px);
+  bottom: calc(env(safe-area-inset-bottom) + 14px);
   left: 0;
   right: 0;
   z-index: 15;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 0 20px;
+  padding: 0 12px;
   pointer-events: none;
 }
-.pad {
+/* Right pedals are placed as an absolute cluster so GAS is never clipped. */
+.pad-left {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
+}
+.pad-right {
+  position: relative;
+  width: 190px;
+  height: 172px;
+}
+.pad-right .touch-btn {
+  position: absolute;
 }
 .touch-btn {
   pointer-events: auto;
@@ -295,9 +304,9 @@ body {
   color: #fff;
   backdrop-filter: blur(6px);
   border-radius: 50%;
-  width: 84px;
-  height: 84px;
-  font-size: 42px;
+  width: 64px;
+  height: 64px;
+  font-size: 34px;
   font-weight: 900;
   line-height: 1;
   cursor: pointer;
@@ -310,36 +319,41 @@ body {
   filter: brightness(1.25);
 }
 .touch-btn.steer {
+  width: 64px;
+  height: 64px;
   background: rgba(45, 226, 230, 0.28);
   border-color: rgba(45, 226, 230, 0.7);
 }
-.touch-btn.nitro {
-  width: 66px;
-  height: 66px;
-  font-size: 28px;
-  background: rgba(255, 122, 26, 0.45);
-  border-color: rgba(255, 122, 26, 0.8);
-}
 .touch-btn.gas {
-  width: 116px;
-  height: 116px;
+  width: 106px;
+  height: 106px;
+  right: 0;
+  bottom: 0;
   font-size: 24px;
   letter-spacing: 1px;
-  background: rgba(46, 204, 90, 0.75);
+  background: rgba(46, 204, 90, 0.78);
   border-color: #6dffa2;
   color: #04170a;
 }
 .touch-btn.brake {
-  width: 90px;
-  height: 90px;
-  font-size: 18px;
+  width: 80px;
+  height: 80px;
+  left: 0;
+  bottom: 0;
+  font-size: 17px;
   letter-spacing: 1px;
-  background: rgba(226, 58, 58, 0.75);
+  background: rgba(226, 58, 58, 0.78);
   border-color: #ff8a8a;
   color: #1a0303;
 }
-.pad.pad-right {
-  gap: 10px;
+.touch-btn.nitro {
+  width: 58px;
+  height: 58px;
+  right: 6px;
+  top: 0;
+  font-size: 26px;
+  background: rgba(255, 122, 26, 0.5);
+  border-color: rgba(255, 122, 26, 0.85);
 }
 
 /* ---------- Loader ---------- */
