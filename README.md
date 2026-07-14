@@ -13,6 +13,21 @@ are **no external 3D/image/audio asset files**, so it runs anywhere and installs
 
 ---
 
+## 📲 Install on your Android phone (no PC setup needed)
+
+Every push to `main` triggers a GitHub Actions workflow that builds a real,
+installable **debug APK** in the cloud and publishes it to the repo's Releases.
+
+1. Open the **[Releases page](https://github.com/amolbankar291-netizen/theamolbankar/releases)**
+   on your Android phone (look for **"Fortuner Rush (Android APK)"** / tag `android-latest`).
+2. Download **`fortuner-rush.apk`**.
+3. Tap the file → if prompted, allow **"Install unknown apps"** for your browser → **Install**.
+
+> First build takes a few minutes. You can watch progress under the repo's **Actions** tab.
+> (This is a debug build for sideloading — for a Play Store release, see the signing steps below.)
+
+---
+
 ## ✨ Features
 
 - 🚗 **4 unlockable cars** in a **Garage** — Fortuner SUV, Neon Speedster, Charger R/T,
