@@ -1,0 +1,12 @@
+{
+  "appId": "com.amolbankar.fortunerrush",
+  "appName": "Fortuner Rush",
+  "webDir": "dist",
+  "backgroundColor": "#0b1020",
+  "android": {
+    "allowMixedContent": true
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}

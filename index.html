@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Fortuner Rush</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Heads-up display -->
+      <div id="hud" class="hidden">
+        <div class="hud-row">
+          <div class="hud-chip">
+            <span class="hud-label">SCORE</span>
+            <span id="hud-score" class="hud-value">0</span>
+          </div>
+          <div class="hud-chip">
+            <span class="hud-label">COINS</span>
+            <span id="hud-coins" class="hud-value">0</span>
+          </div>
+          <div class="hud-chip">
+            <span class="hud-label">SPEED</span>
+            <span id="hud-speed" class="hud-value">0</span>
+            <span class="hud-unit">km/h</span>
+          </div>
+        </div>
+        <div class="nitro-wrap">
+          <div class="nitro-label">NITRO</div>
+          <div class="nitro-bar"><div id="nitro-fill" class="nitro-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- Touch controls -->
+      <div id="touch-controls" class="hidden">
+        <button class="touch-btn steer" id="btn-left" aria-label="Steer left">‹</button>
+        <button class="touch-btn nitro" id="btn-nitro" aria-label="Nitro">🔥</button>
+        <button class="touch-btn steer" id="btn-right" aria-label="Steer right">›</button>
+      </div>
+
+      <!-- Start / Menu screen -->
+      <div id="menu" class="overlay">
+        <div class="panel">
+          <h1 class="title">FORTUNER<span>RUSH</span></h1>
+          <p class="subtitle">Outrun traffic. Grab coins. Chase the horizon.</p>
+          <div class="best">Best Score: <b id="best-score">0</b></div>
+          <button id="btn-play" class="btn-primary">▶ PLAY</button>
+          <div class="hint">
+            <p>Drive: <b>← →</b> / A D / tilt phone / on-screen buttons</p>
+            <p>Nitro: <b>Space</b> / 🔥 button</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game over screen -->
+      <div id="gameover" class="overlay hidden">
+        <div class="panel">
+          <h2 class="go-title">CRASHED!</h2>
+          <div class="go-stats">
+            <div><span>Score</span><b id="go-score">0</b></div>
+            <div><span>Coins</span><b id="go-coins">0</b></div>
+            <div><span>Distance</span><b id="go-distance">0 m</b></div>
+          </div>
+          <div id="go-newbest" class="newbest hidden">🏆 NEW BEST!</div>
+          <button id="btn-retry" class="btn-primary">↻ RETRY</button>
+          <button id="btn-menu" class="btn-secondary">MENU</button>
+        </div>
+      </div>
+
+      <div id="loader" class="overlay">
+        <div class="spinner"></div>
+        <p>Revving engine…</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

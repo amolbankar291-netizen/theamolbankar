@@ -1,0 +1,27 @@
+{
+  "name": "fortuner-rush",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fortuner Rush - a unique 3D endless SUV driving game for Android & iOS",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "cap:sync": "npm run build && cap sync",
+    "add:android": "cap add android",
+    "add:ios": "cap add ios",
+    "android": "npm run build && cap sync android && cap open android",
+    "ios": "npm run build && cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2",
+    "vite": "^5.4.8"
+  }
+}
