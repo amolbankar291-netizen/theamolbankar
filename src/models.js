@@ -30,6 +30,18 @@ const GLASS = () =>
     opacity: 0.85
   });
 
+/** Glossy automotive paint that catches the environment map (reads as 3D). */
+function carPaint(color, opts = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    metalness: opts.metalness ?? 0.55,
+    roughness: opts.roughness ?? 0.28,
+    clearcoat: 1,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 1.5
+  });
+}
+
 function makeWheels(group, bodyWidth, wheelZPositions, radius = 0.42, y = -0.28, rimColor = 0xcfd4dc) {
   const wheelGeo = new THREE.CylinderGeometry(radius, radius, 0.34, 18);
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.9 });
@@ -55,7 +67,7 @@ function addLights(car, frontZ, backZ, y = 0.2) {
   const headMat = new THREE.MeshStandardMaterial({
     color: 0xfff4c2,
     emissive: 0xfff0b0,
-    emissiveIntensity: 1.4
+    emissiveIntensity: 2.2
   });
   for (const side of [-1, 1]) {
     const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.08), headMat);
@@ -76,16 +88,20 @@ function addLights(car, frontZ, backZ, y = 0.2) {
 /* ------------------------------------------------------------------ */
 
 /** Toyota-Fortuner-style tall SUV. */
-export function buildFortuner(color = 0xffffff) {
+export function buildFortuner(color = 0x1560ff) {
   const car = new THREE.Group();
-  const lower = boxMesh(1.9, 0.75, 4.4, color, { metalness: 0.4, roughness: 0.35 });
+  const paint = carPaint(color);
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.75, 4.4), paint);
+  lower.castShadow = true;
   lower.position.y = 0.1;
   car.add(lower);
-  const cabin = boxMesh(1.72, 0.7, 2.5, color, { metalness: 0.4, roughness: 0.35 });
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.7, 2.5), paint);
+  cabin.castShadow = true;
   cabin.position.set(0, 0.72, -0.15);
   car.add(cabin);
   // Gloss-black roof (Legender two-tone look)
-  const roof = boxMesh(1.66, 0.14, 2.46, 0x0b0d12, { metalness: 0.5, roughness: 0.25 });
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.14, 2.46), carPaint(0x0b0d12, { roughness: 0.18 }));
+  roof.castShadow = true;
   roof.position.set(0, 1.11, -0.15);
   car.add(roof);
   // Dark sport bumpers (front + rear valance)
@@ -303,7 +319,7 @@ export function buildSuperCar(color = 0xffd23f) {
 
 /** Registry of playable cars with gameplay stats (multipliers on base). */
 export const CARS = [
-  { id: 'fortuner', name: 'Fortuner GX', price: 0, color: 0xffffff, topSpeed: 1.0, accel: 1.0, handling: 1.0, build: buildFortuner },
+  { id: 'fortuner', name: 'Fortuner GX', price: 0, color: 0x1560ff, topSpeed: 1.0, accel: 1.0, handling: 1.0, build: buildFortuner },
   { id: 'speedster', name: 'Neon Speedster', price: 1200, color: 0xff2a6d, topSpeed: 1.22, accel: 1.2, handling: 1.18, build: buildSportsCar },
   { id: 'charger', name: 'Charger R/T', price: 3200, color: 0x161616, topSpeed: 1.14, accel: 1.16, handling: 0.96, build: buildMuscleCar },
   { id: 'velocity', name: 'Velocity X', price: 7000, color: 0xffd23f, topSpeed: 1.4, accel: 1.34, handling: 1.26, build: buildSuperCar }

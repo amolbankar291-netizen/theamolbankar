@@ -143,7 +143,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.2;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x0b1020, 60, 210);
@@ -184,9 +184,9 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.7, 0.78);
 composer.addPass(bloom);
 
 // ---------- Lighting ----------
-const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x243046, 0.7);
+const hemi = new THREE.HemisphereLight(0xbfd4ff, 0x243046, 0.9);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+const sun = new THREE.DirectionalLight(0xffffff, 1.9);
 sun.position.set(18, 40, 10);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -320,6 +320,20 @@ function loadSelectedCar() {
   flame.visible = false;
   player.add(flame);
   player.userData.flame = flame;
+
+  // Soft contact shadow so the car sits on the road (reads as 3D)
+  const blob = new THREE.Mesh(
+    new THREE.CircleGeometry(1.7, 28),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false })
+  );
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.y = -0.43;
+  player.add(blob);
+
+  // A glamour light that travels with the car so it always stands out
+  const glow = new THREE.PointLight(0xffffff, 0.7, 26, 2);
+  glow.position.set(0, 4, 3);
+  player.add(glow);
 }
 
 // ---------- Object pools ----------
@@ -414,12 +428,13 @@ function spawnBoostPad() {
   scene.add(pad);
   boostpads.push(pad);
 }
-function spawnRival() {
+function spawnRival(z) {
   const car = buildRivalCar();
   const lane = (Math.random() * CONFIG.laneCount) | 0;
-  car.position.set(lanePositions[lane], 0.55, CONFIG.spawnZ - Math.random() * 60);
+  const zz = z !== undefined ? z : CONFIG.spawnZ - Math.random() * 60;
+  car.position.set(lanePositions[lane], 0.55, zz);
   // rivals drive fast; the player overtakes the slower ones (a race pack)
-  car.userData.speed = 58 + Math.random() * 26;
+  car.userData.speed = 42 + Math.random() * 22;
   scene.add(car);
   rivals.push(car);
 }
@@ -610,6 +625,8 @@ function startGame() {
   ui.touch.classList.remove('hidden');
   audio.init();
   audio.resume();
+  // Seed a visible pack of opponents ahead so the race feels alive at once
+  for (let i = 0; i < 4; i++) spawnRival(-35 - i * 22 - Math.random() * 10);
   const t = TRACKS[game.track];
   showBanner(t.name, t.tag);
 }
@@ -761,7 +778,16 @@ function renderTracks() {
       : selected
       ? `<button class="car-btn owned" disabled>SELECTED</button>`
       : `<button class="car-btn select" data-track="${i}">SELECT</button>`;
+    const hx = (h) => '#' + h.toString(16).padStart(6, '0');
+    let preview;
+    if (t.mixed) {
+      preview = 'linear-gradient(120deg,#1a1f2e,#1f4d24,#8a6a3a,#4a3826,#d2dced)';
+    } else {
+      const b = BIOMES[t.biome];
+      preview = `linear-gradient(160deg, ${hx(b.skyDay)}, ${hx(b.ground)})`;
+    }
     card.innerHTML = `
+      <div class="track-swatch" style="background:${preview}">${unlocked ? '' : '🔒'}</div>
       <div class="track-name">${t.name}</div>
       <div class="track-tag">${t.tag}</div>
       <div class="track-goal">🏁 ${t.goal} m to win</div>
@@ -1013,9 +1039,9 @@ function update(dt) {
 
   // ---- Rival racers (the pack you race against) ----
   game.rivalTimer -= dt;
-  if (game.rivalTimer <= 0 && rivals.length < 4) {
+  if (game.rivalTimer <= 0 && rivals.length < 6) {
     spawnRival();
-    game.rivalTimer = 3.5 + Math.random() * 4;
+    game.rivalTimer = 1.6 + Math.random() * 2.2;
   }
   for (let i = rivals.length - 1; i >= 0; i--) {
     const r = rivals[i];

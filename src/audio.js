@@ -28,7 +28,7 @@ export class AudioKit {
     }
     this.ctx = new AC();
     this.master = this.ctx.createGain();
-    this.master.gain.value = 0.9;
+    this.master.gain.value = 1.0;
     this.master.connect(this.ctx.destination);
 
     this._noiseBuf = this._makeNoise(2);
@@ -123,16 +123,17 @@ export class AudioKit {
     const gears = 6;
     const span = 1 / gears;
     const gearPos = (intensity % span) / span; // 0..1 within the gear
-    const rpm = 0.28 + gearPos * 0.72; // revs climb then reset on shift
-    const f = 46 + rpm * 250;
-    this.engine.base.frequency.setTargetAtTime(f, t, 0.04);
-    this.engine.harm.frequency.setTargetAtTime(f * 2, t, 0.04);
+    const rpm = 0.26 + gearPos * 0.74; // revs climb then reset on shift
+    const f = 55 + rpm * 330; // deeper idle, bigger rev sweep
+    this.engine.base.frequency.setTargetAtTime(f, t, 0.035);
+    this.engine.harm.frequency.setTargetAtTime(f * 2, t, 0.035);
     this.engine.sub.frequency.setTargetAtTime(f * 0.5, t, 0.05);
-    this.engine.lp.frequency.setTargetAtTime(420 + rpm * 2400 + intensity * 800, t, 0.05);
-    this.engine.gain.gain.setTargetAtTime(0.05 + intensity * 0.06, t, 0.1);
+    this.engine.lp.frequency.setTargetAtTime(520 + rpm * 3000 + intensity * 1100, t, 0.045);
+    // Louder, punchier engine so it's clearly audible on a phone speaker
+    this.engine.gain.gain.setTargetAtTime(0.11 + intensity * 0.14, t, 0.09);
 
-    this.tire.gain.gain.setTargetAtTime(intensity * 0.05, t, 0.15);
-    this.wind.gain.gain.setTargetAtTime(Math.max(0, intensity - 0.3) * 0.07, t, 0.2);
+    this.tire.gain.gain.setTargetAtTime(intensity * 0.08, t, 0.15);
+    this.wind.gain.gain.setTargetAtTime(Math.max(0, intensity - 0.3) * 0.1, t, 0.2);
   }
 
   stopEngine() {
