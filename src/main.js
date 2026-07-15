@@ -71,8 +71,8 @@ const BIOMES = [
 
 // ---------- Tracks (selectable; unlocked by winning the previous one) ----------
 const TRACKS = [
-  { key: 'city', biome: 0, name: 'CITY HIGHWAY', tag: 'Neon downtown', goal: 1500 },
-  { key: 'highway', biome: 1, name: 'OPEN HIGHWAY', tag: 'Full throttle', goal: 1800 },
+  { key: 'highway', biome: 1, name: 'OPEN HIGHWAY', tag: 'Full throttle', goal: 1500 },
+  { key: 'city', biome: 0, name: 'CITY HIGHWAY', tag: 'Neon downtown', goal: 1800 },
   { key: 'jungle', biome: 2, name: 'JUNGLE RUN', tag: 'Into the wild', goal: 2100 },
   { key: 'hills', biome: 3, name: 'DESERT HILLS', tag: 'Sun & dust', goal: 2400 },
   { key: 'mud', biome: 4, name: 'MUD TRAIL', tag: 'Off-road mayhem', goal: 2700 },
@@ -124,6 +124,8 @@ const ui = {
   colorList: el('color-list'),
   trackFill: el('track-fill'),
   speedo: el('speedo'),
+  speedoNeedle: el('speedo-needle'),
+  gear: el('gear-val'),
   gameover: el('gameover'),
   loader: el('loader'),
   best: el('best-score'),
@@ -158,7 +160,7 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 600);
-const camBase = new THREE.Vector3(0, 5.7, 12.6);
+const camBase = new THREE.Vector3(0, 3.9, 9.8);
 camera.position.copy(camBase);
 camera.layers.enable(1); // layer 1 = HUD mirror plane
 scene.add(camera); // so camera-attached mirror renders
@@ -965,15 +967,17 @@ function applyEnvironment(dt) {
   pal.fogDay.lerp(tgt.fogDay, k);
   pal.fogNight.lerp(tgt.fogNight, k);
 
-  const d = (Math.sin(game.dayTime * Math.PI * 2 - Math.PI / 2) + 1) / 2; // 1 day, 0 night
+  // Bias toward daylight so the scenery stays bright & scenic like a highway.
+  const rawD = (Math.sin(game.dayTime * Math.PI * 2 - Math.PI / 2) + 1) / 2;
+  const d = 0.45 + rawD * 0.55; // 1 full day, 0.45 dusk (never fully dark)
   const night = 1 - d;
   tmp.copy(pal.skyNight).lerp(pal.skyDay, d);
   scene.background = tmp.clone();
   scene.fog.color.copy(pal.fogNight).lerp(pal.fogDay, d);
-  groundMat.color.copy(pal.ground).multiplyScalar(0.5 + d * 0.6);
+  groundMat.color.copy(pal.ground).multiplyScalar(0.7 + d * 0.5);
 
-  sun.intensity = 0.2 + d * 1.4;
-  hemi.intensity = 0.22 + d * 0.6;
+  sun.intensity = 0.6 + d * 1.5;
+  hemi.intensity = 0.45 + d * 0.6;
   sun.color.setHSL(0.09 + d * 0.04, 0.6, 0.5 + d * 0.4);
   celestial.material.color.setHex(d > 0.5 ? 0xfff2c0 : 0xdfe6ff);
   stars.material.opacity = Math.max(0, night - 0.15) * 1.1;
@@ -1043,7 +1047,7 @@ function update(dt) {
 
   const move = game.speed * dt;
   game.distance += move;
-  game.dayTime = (game.dayTime + dt * 0.014) % 1;
+  game.dayTime = (game.dayTime + dt * 0.008) % 1;
 
   // On "All Terrain" the biome cycles as you drive; fixed tracks stay put.
   if (game.mixed && game.distance >= game.nextBiomeAt) {
@@ -1340,11 +1344,11 @@ function updateCamera(dt, hot) {
     camera.lookAt(player.position.x + steerSmooth * 3, 1.02, player.position.z - 26);
     baseFov = 74;
   } else {
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.35, dt * 4);
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.position.x * 0.4, dt * 4);
     camera.position.y = camBase.y + (Math.random() - 0.5) * shake;
     camera.position.z = camBase.z;
-    camera.lookAt(player.position.x * 0.4, 1.4, -19);
-    baseFov = 60;
+    camera.lookAt(player.position.x * 0.45, 1.15, -21);
+    baseFov = 62;
   }
   const targetFov = baseFov + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;
@@ -1370,6 +1374,12 @@ function updateHud() {
   if (ui.speedo) {
     const frac = THREE.MathUtils.clamp(game.speed / (CONFIG.maxSpeed + CONFIG.nitroBoost), 0, 1);
     ui.speedo.style.setProperty('--deg', `${(frac * 300).toFixed(0)}deg`);
+    if (ui.speedoNeedle) ui.speedoNeedle.style.transform = `translateX(-50%) rotate(${(210 + frac * 300).toFixed(1)}deg)`;
+    if (ui.gear) {
+      const moving = game.speed / CONFIG.maxSpeed;
+      const gear = THREE.MathUtils.clamp(Math.floor(moving * 6) + 1, 1, 6);
+      ui.gear.textContent = gear;
+    }
   }
   ui.nitroFill.style.width = `${game.nitro}%`;
   ui.mult.textContent = `x${game.mult.toFixed(1)}`;

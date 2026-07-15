@@ -316,6 +316,78 @@ body {
   color: var(--cyan);
   margin-top: 2px;
 }
+.gauge-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.speedo-ticks {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 210deg,
+    rgba(255, 255, 255, 0.55) 0deg 1.3deg,
+    transparent 1.3deg 15deg);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%, #000 76%, transparent 77%);
+  mask: radial-gradient(circle, transparent 60%, #000 61%, #000 76%, transparent 77%);
+  opacity: 0.8;
+  z-index: 1;
+}
+.speedo-needle {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 3px;
+  height: 40%;
+  background: linear-gradient(180deg, #ff3b3b, #ff8a3b);
+  border-radius: 3px;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(210deg);
+  box-shadow: 0 0 6px rgba(255, 59, 59, 0.8);
+  z-index: 3;
+  transition: transform 0.1s linear;
+}
+.speedo-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff3b3b;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(255, 59, 59, 0.7);
+  z-index: 4;
+}
+.speedo-inner {
+  z-index: 2;
+}
+.gear-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 58px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(24, 30, 48, 0.9), rgba(9, 12, 22, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+.gear-mode {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  opacity: 0.8;
+}
+.gear-val {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
 .nitro-wrap {
   max-width: 320px;
   margin: 10px auto 0;
@@ -941,8 +1013,9 @@ body {
 /* ---------- View toggle button ---------- */
 .btn-view {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 12px);
-  right: 12px;
+  top: calc(env(safe-area-inset-top) + 96px);
+  left: 14px;
+  right: auto;
   pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(11, 16, 32, 0.55);
