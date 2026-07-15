@@ -306,8 +306,8 @@ const CAR_MODELS = { fortuner: suvUrl };
 let loadToken = 0;
 
 /**
- * Normalise a loaded model to game scale, sit it on the road, recolour the
- * body, and return its wheel groups (all wheels + the steerable front pair).
+ * Normalise a loaded model to game scale, sit it on the road and recolour the
+ * body panels to the chosen colour.
  */
 function configureCarModel(root, hex) {
   let box = new THREE.Box3().setFromObject(root);
@@ -336,32 +336,6 @@ function configureCarModel(root, hex) {
       m.envMapIntensity = 1.15;
     }
   });
-
-  const wheelNodes = [];
-  const steerNodes = [];
-  root.traverse((o) => {
-    if (!o.isMesh && /wheel/i.test(o.name)) {
-      wheelNodes.push(o);
-      if (/front/i.test(o.name)) steerNodes.push(o);
-    }
-  });
-  return { wheelNodes, steerNodes };
-}
-
-/** Wrap wheel meshes in yaw pivots so they can be steered (procedural cars). */
-function makeSteerPivots(wheelMeshes) {
-  const pivots = [];
-  for (const w of wheelMeshes) {
-    const parent = w.parent;
-    if (!parent) continue;
-    const pivot = new THREE.Group();
-    pivot.position.copy(w.position);
-    parent.add(pivot);
-    w.position.set(0, 0, 0);
-    pivot.add(w);
-    pivots.push(pivot);
-  }
-  return pivots;
 }
 
 function loadSelectedCar() {
@@ -381,8 +355,6 @@ function loadSelectedCar() {
   player.userData.headlights = body.userData.headlights;
   player.userData.windshield = body.userData.windshield;
   player.userData.body = body;
-  // Front wheels (first pair) steer left/right
-  player.userData.steer = makeSteerPivots(built.wheels.slice(0, 2));
 
   // Exhaust nitro flame at the rear (world +Z when facing -Z)
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.2, 10), flameMat);
@@ -416,7 +388,7 @@ function loadSelectedCar() {
         if (token !== loadToken) return; // a newer car was picked meanwhile
         try {
           const root = gltf.scene;
-          const { wheelNodes, steerNodes } = configureCarModel(root, hex);
+          configureCarModel(root, hex);
           const wrap = new THREE.Group();
           wrap.add(root);
           wrap.position.y = -0.45;
@@ -425,8 +397,9 @@ function loadSelectedCar() {
           player.add(wrap);
           player.userData.body = wrap;
           player.userData.windshield = null;
-          if (wheelNodes.length) playerWheels = wheelNodes;
-          player.userData.steer = steerNodes.length ? steerNodes : null;
+          // Keep the model's wheels static — rotating the model's wheel nodes
+          // makes them orbit off-centre (they'd float above the car).
+          playerWheels = [];
         } catch (_) {
           /* keep the procedural car */
         }
@@ -531,14 +504,14 @@ function spawnBoostPad() {
   scene.add(pad);
   boostpads.push(pad);
 }
-function spawnRival(z) {
+function spawnRival(z, lane) {
   const car = buildRivalCar();
-  const lane = (Math.random() * CONFIG.laneCount) | 0;
-  const zz = z !== undefined ? z : CONFIG.spawnZ - Math.random() * 60;
-  car.position.set(lanePositions[lane], 0.55, zz);
-  // Rivals cruise a bit slower than the player so you keep catching & passing
-  // them — this keeps a visible pack of cars on the road ahead.
-  car.userData.speed = 28 + Math.random() * 20;
+  const ln = lane !== undefined ? lane : (Math.random() * CONFIG.laneCount) | 0;
+  const zz = z !== undefined ? z : -55 - Math.random() * 80;
+  car.position.set(lanePositions[ln], 0.55, zz);
+  // "rel" = how fast the rival drifts back toward you (units/s), independent of
+  // the player's speed — this guarantees a pack of cars is always on-screen.
+  car.userData.rel = 7 + Math.random() * 15;
   scene.add(car);
   rivals.push(car);
 }
@@ -729,8 +702,10 @@ function startGame() {
   ui.touch.classList.remove('hidden');
   audio.init();
   audio.resume();
-  // Seed a visible pack of opponents just ahead so the race feels alive at once
-  for (let i = 0; i < 5; i++) spawnRival(-20 - i * 14 - Math.random() * 8);
+  // Seed a visible pack of opponents ahead (in the side lanes so you don't
+  // instantly crash) so the race feels alive from the first second.
+  const sideLanes = [0, 2, 0, 2, 1];
+  for (let i = 0; i < 5; i++) spawnRival(-30 - i * 16 - Math.random() * 8, sideLanes[i]);
   const t = TRACKS[game.track];
   showBanner(t.name, t.tag);
 }
@@ -1105,11 +1080,10 @@ function update(dt) {
     -roadHalf + 1,
     roadHalf - 1
   );
-  player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, -dir * 0.2, dt * 8);
-  player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, -dir * 0.12, dt * 8);
+  // Stronger arcade lean + turn-in so the car clearly reacts to steering.
+  player.rotation.z = THREE.MathUtils.lerp(player.rotation.z, -dir * 0.32, dt * 8);
+  player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, -dir * 0.22, dt * 8);
   for (const w of playerWheels) w.rotation.x -= move * 0.4;
-  const steerNodes = player.userData.steer;
-  if (steerNodes) for (const s of steerNodes) s.rotation.y = -steerSmooth * 0.5;
   roadTex.offset.y -= move / 16;
 
   const phw = 1.0;
@@ -1151,7 +1125,7 @@ function update(dt) {
   }
   for (let i = rivals.length - 1; i >= 0; i--) {
     const r = rivals[i];
-    r.position.z += (game.speed - r.userData.speed) * dt;
+    r.position.z += r.userData.rel * dt;
     if (hits(player.position.x, player.position.z, phw, phl, r.position.x, r.position.z, 0.95, 2.25)) {
       endGame();
       return;
