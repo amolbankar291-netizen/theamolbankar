@@ -123,6 +123,7 @@ const ui = {
   btnNextTrack: el('btn-next-track'),
   colorList: el('color-list'),
   trackFill: el('track-fill'),
+  speedo: el('speedo'),
   gameover: el('gameover'),
   loader: el('loader'),
   best: el('best-score'),
@@ -135,9 +136,11 @@ const ui = {
   speedlines: el('speedlines'),
   vignette: el('vignette'),
   carList: el('car-list'),
-  garageBank: el('garage-bank')
+  garageBank: el('garage-bank'),
+  trackText: el('track-progress-text')
 };
 const steerWheelEl = el('steering-wheel');
+const hudWheelEl = el('hud-wheel');
 
 // ---------- Renderer / Scene / Camera ----------
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -1075,6 +1078,7 @@ function update(dt) {
   dir = THREE.MathUtils.clamp(dir, -1, 1);
   steerSmooth = THREE.MathUtils.lerp(steerSmooth, dir, dt * 8);
   if (steerWheelEl) steerWheelEl.style.transform = `translateX(-50%) rotate(${(steerSmooth * 130).toFixed(1)}deg)`;
+  if (hudWheelEl) hudWheelEl.style.transform = `rotate(${(steerSmooth * 140).toFixed(1)}deg)`;
   player.position.x = THREE.MathUtils.clamp(
     player.position.x + dir * CONFIG.steerSpeed * playerStats.handling * dt,
     -roadHalf + 1,
@@ -1363,11 +1367,16 @@ function updateHud() {
   ui.score.textContent = game.score;
   ui.coins.textContent = game.coins;
   ui.speed.textContent = Math.round(game.speed * CONFIG.kmhDisplay);
+  if (ui.speedo) {
+    const frac = THREE.MathUtils.clamp(game.speed / (CONFIG.maxSpeed + CONFIG.nitroBoost), 0, 1);
+    ui.speedo.style.setProperty('--deg', `${(frac * 300).toFixed(0)}deg`);
+  }
   ui.nitroFill.style.width = `${game.nitro}%`;
   ui.mult.textContent = `x${game.mult.toFixed(1)}`;
   ui.mult.style.opacity = game.mult > 1 ? '1' : '0.4';
   ui.wanted.textContent = game.wanted > 0 ? '★'.repeat(game.wanted) : '';
   if (ui.trackFill) ui.trackFill.style.width = `${Math.min(100, (game.distance / game.goal) * 100)}%`;
+  if (ui.trackText) ui.trackText.textContent = `${Math.floor(game.distance)} / ${game.goal} m`;
 }
 
 function animate() {

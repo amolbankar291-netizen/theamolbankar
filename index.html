@@ -22,19 +22,23 @@
 
       <!-- Heads-up display -->
       <div id="hud" class="hidden">
-        <div class="hud-row">
-          <div class="hud-chip">
-            <span class="hud-label">SCORE</span>
-            <span id="hud-score" class="hud-value">0</span>
+        <div class="hud-topbar">
+          <div class="hud-left">
+            <div class="hud-chip">
+              <span class="hud-label">SCORE</span>
+              <span id="hud-score" class="hud-value">0</span>
+            </div>
+            <div class="hud-chip">
+              <span class="hud-label">COINS</span>
+              <span id="hud-coins" class="hud-value">0</span>
+            </div>
           </div>
-          <div class="hud-chip">
-            <span class="hud-label">COINS</span>
-            <span id="hud-coins" class="hud-value">0</span>
-          </div>
-          <div class="hud-chip">
-            <span class="hud-label">SPEED</span>
-            <span id="hud-speed" class="hud-value">0</span>
-            <span class="hud-unit">km/h</span>
+          <div id="speedo" class="speedo">
+            <div class="speedo-ring"></div>
+            <div class="speedo-inner">
+              <span id="hud-speed" class="speedo-num">0</span>
+              <span class="speedo-unit">KM/H</span>
+            </div>
           </div>
         </div>
         <div class="hud-row2">
@@ -46,8 +50,9 @@
           <div class="nitro-bar"><div id="nitro-fill" class="nitro-fill"></div></div>
         </div>
         <div class="track-progress">
-          <span class="track-progress-label">TRACK</span>
+          <span class="track-progress-label">🏁</span>
           <div class="track-progress-bar"><div id="track-fill" class="track-progress-fill"></div></div>
+          <span id="track-progress-text" class="track-progress-text">0 / 0 m</span>
         </div>
         <button id="btn-view" class="btn-view">🎥 Chase</button>
       </div>
@@ -80,13 +85,30 @@
       <!-- Touch controls -->
       <div id="touch-controls" class="hidden">
         <div class="pad pad-left">
-          <button class="touch-btn steer" id="btn-left" aria-label="Steer left">‹</button>
-          <button class="touch-btn steer" id="btn-right" aria-label="Steer right">›</button>
+          <div class="wheel-control">
+            <svg id="hud-wheel" class="wheel-svg" viewBox="0 0 200 200" width="100%" height="100%">
+              <defs>
+                <radialGradient id="wheelGrad" cx="50%" cy="42%" r="65%">
+                  <stop offset="0%" stop-color="#3a3f4b" />
+                  <stop offset="100%" stop-color="#0c0e14" />
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="94" fill="none" stroke="url(#wheelGrad)" stroke-width="20" />
+              <circle cx="100" cy="100" r="94" fill="none" stroke="#000" stroke-width="20" stroke-opacity="0.35" />
+              <circle cx="100" cy="100" r="34" fill="#15181f" stroke="#2a2e38" stroke-width="4" />
+              <rect x="93" y="100" width="14" height="76" rx="6" fill="#15181f" />
+              <rect x="24" y="93" width="152" height="14" rx="7" fill="#15181f" />
+              <circle cx="100" cy="100" r="12" fill="#ff7a1a" />
+              <path d="M60 40 A70 70 0 0 1 140 40" fill="none" stroke="#2de2e6" stroke-width="4" stroke-linecap="round" opacity="0.8" />
+            </svg>
+            <button id="btn-left" class="wheel-half left" aria-label="Steer left"></button>
+            <button id="btn-right" class="wheel-half right" aria-label="Steer right"></button>
+          </div>
         </div>
         <div class="pad pad-right">
-          <button class="touch-btn brake" id="btn-brake" aria-label="Brake">&#9662;</button>
-          <button class="touch-btn nitro" id="btn-nitro" aria-label="Nitro">🔥</button>
-          <button class="touch-btn gas" id="btn-gas" aria-label="Accelerate">&#9652;</button>
+          <button class="pedal nitro" id="btn-nitro" aria-label="Nitro"><span class="pedal-glyph">🔥</span><span class="pedal-cap">NITRO</span></button>
+          <button class="pedal brake" id="btn-brake" aria-label="Brake"><span class="pedal-glyph">&#9662;</span><span class="pedal-cap">BRAKE</span></button>
+          <button class="pedal gas" id="btn-gas" aria-label="Accelerate"><span class="pedal-glyph">&#9652;</span><span class="pedal-cap">GAS</span></button>
         </div>
       </div>
 
