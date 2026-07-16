@@ -128,21 +128,35 @@
       </div>
 
       <!-- Start / Menu screen -->
-      <div id="menu" class="overlay">
-        <div class="panel">
-          <h1 class="title">FORTUNER<span>RUSH</span></h1>
-          <p class="subtitle">Outrun the cops. Chain near-misses. Rule the street.</p>
-          <div class="stat-row">
-            <div>Best <b id="best-score">0</b></div>
-            <div>🪙 <b id="bank-coins">0</b></div>
+      <div id="menu" class="overlay menu-screen">
+        <div class="menu-topbar">
+          <div class="brand">
+            <span class="brand-main">FORTUNER</span>
+            <span class="brand-sub">RACING LEGENDS</span>
           </div>
-          <button id="btn-play" class="btn-primary">▶ RACE</button>
-          <button id="btn-tracks" class="btn-secondary">🗺️ TRACKS</button>
-          <button id="btn-garage" class="btn-secondary">🚗 GARAGE</button>
-          <div class="hint">
-            <p>Steer <b>← →</b> · Gas <b>↑/W</b> · Brake <b>↓/S</b> · Nitro <b>Space</b></p>
-            <p>On phone: use the on-screen pedals &amp; tilt · Near-miss for combos</p>
+          <div class="wallet">
+            <div class="wallet-chip"><span class="wc-ic">🪙</span><b id="bank-coins">0</b></div>
+            <div class="wallet-chip"><span class="wc-ic">💎</span><b id="wallet-diamonds">0</b></div>
+            <div class="wallet-chip lvl"><span class="wc-ic">★</span><span class="wc-lvl">LVL <b id="wallet-level">1</b></span></div>
           </div>
+        </div>
+
+        <div class="menu-hero">
+          <div class="hero-plate">
+            <div class="hero-label">BEST DISTANCE SCORE</div>
+            <div class="hero-best"><b id="best-score">0</b></div>
+            <div class="hero-car-name" id="hero-car-name">FORTUNER GX</div>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <div class="menu-nav">
+            <button id="btn-garage" class="nav-tile"><span class="nav-ic">🚗</span><span>GARAGE</span></button>
+            <button id="btn-upgrade" class="nav-tile"><span class="nav-ic">🔧</span><span>UPGRADE</span></button>
+            <button id="btn-tracks" class="nav-tile"><span class="nav-ic">🗺️</span><span>TRACKS</span></button>
+          </div>
+          <button id="btn-play" class="btn-primary btn-start">▶ START RACE</button>
+          <div class="menu-hint">Steer ← → · Gas ↑ · Brake ↓ · Nitro Space · or use on-screen wheel &amp; pedals</div>
         </div>
       </div>
 
@@ -150,8 +164,11 @@
       <div id="garage" class="overlay hidden">
         <div class="panel garage-panel">
           <div class="garage-head">
-            <h2 class="go-title" style="margin:0">GARAGE</h2>
-            <div class="garage-bank">🪙 <b id="garage-bank">0</b></div>
+            <h2 class="scr-title">GARAGE</h2>
+            <div class="wallet compact">
+              <div class="wallet-chip">🪙 <b id="garage-bank">0</b></div>
+              <div class="wallet-chip">💎 <b id="garage-diamonds">0</b></div>
+            </div>
           </div>
           <div id="car-list" class="car-list"></div>
           <div class="swipe-hint">‹ swipe to browse cars ›</div>
@@ -161,11 +178,26 @@
         </div>
       </div>
 
+      <!-- Upgrade screen -->
+      <div id="upgrade" class="overlay hidden">
+        <div class="panel garage-panel">
+          <div class="garage-head">
+            <h2 class="scr-title">UPGRADE</h2>
+            <div class="wallet compact">
+              <div class="wallet-chip">🪙 <b id="upgrade-bank">0</b></div>
+            </div>
+          </div>
+          <div class="upgrade-car" id="upgrade-car-name">FORTUNER GX</div>
+          <div id="upgrade-list" class="upgrade-list"></div>
+          <button id="btn-upgrade-back" class="btn-secondary">‹ BACK</button>
+        </div>
+      </div>
+
       <!-- Track select screen -->
       <div id="tracks" class="overlay hidden">
         <div class="panel garage-panel">
           <div class="garage-head">
-            <h2 class="go-title" style="margin:0">TRACKS</h2>
+            <h2 class="scr-title">TRACKS</h2>
           </div>
           <div id="track-list" class="track-list"></div>
           <div class="swipe-hint">‹ swipe to browse tracks ›</div>
@@ -184,8 +216,8 @@
           </div>
           <div id="win-unlock" class="newbest hidden">🔓 Unlocked</div>
           <button id="btn-next-track" class="btn-primary hidden">▶ NEXT TRACK</button>
-          <button id="btn-win-retry" class="btn-secondary">↻ RACE AGAIN</button>
-          <button id="btn-win-menu" class="btn-secondary">MENU</button>
+          <button id="btn-win-retry" class="btn-secondary">↻ RETRY</button>
+          <button id="btn-win-menu" class="btn-secondary">🏠 HOME</button>
         </div>
       </div>
 
@@ -199,13 +231,13 @@
             <div><span>Distance</span><b id="go-distance">0 m</b></div>
           </div>
           <div id="go-newbest" class="newbest hidden">🏆 NEW BEST!</div>
-          <button id="btn-retry" class="btn-primary">↻ RACE AGAIN</button>
-          <button id="btn-menu" class="btn-secondary">MENU</button>
+          <button id="btn-retry" class="btn-primary">↻ RETRY</button>
+          <button id="btn-menu" class="btn-secondary">🏠 HOME</button>
         </div>
       </div>
 
       <div id="loader" class="overlay splash">
-        <h1 class="title splash-title">FORTUNER<span>RUSH</span></h1>
+        <h1 class="title splash-title">FORTUNER<span>RACING LEGENDS</span></h1>
         <div class="spinner"></div>
         <p>Revving engine…</p>
       </div>

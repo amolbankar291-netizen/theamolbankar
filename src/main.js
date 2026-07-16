@@ -272,20 +272,65 @@ for (const side of [-1, 1]) {
 const save = {
   best: Number(localStorage.getItem('fr_best') || 0),
   bank: Number(localStorage.getItem('fr_bank') || 0),
+  diamonds: Number(localStorage.getItem('fr_diamonds') || 0),
   owned: JSON.parse(localStorage.getItem('fr_owned') || '["fortuner"]'),
   selected: localStorage.getItem('fr_selected') || 'fortuner',
   colors: JSON.parse(localStorage.getItem('fr_colors') || '{}'),
   unlocked: JSON.parse(localStorage.getItem('fr_unlocked') || '[0]'),
-  track: Number(localStorage.getItem('fr_track') || 0)
+  track: Number(localStorage.getItem('fr_track') || 0),
+  upgrades: JSON.parse(localStorage.getItem('fr_upgrades') || '{}')
 };
 function persist() {
   localStorage.setItem('fr_best', String(save.best));
   localStorage.setItem('fr_bank', String(save.bank));
+  localStorage.setItem('fr_diamonds', String(save.diamonds));
   localStorage.setItem('fr_owned', JSON.stringify(save.owned));
   localStorage.setItem('fr_selected', save.selected);
   localStorage.setItem('fr_colors', JSON.stringify(save.colors));
   localStorage.setItem('fr_unlocked', JSON.stringify(save.unlocked));
   localStorage.setItem('fr_track', String(save.track));
+  localStorage.setItem('fr_upgrades', JSON.stringify(save.upgrades));
+}
+
+// ---------- Upgrade system (per-car parts that boost performance) ----------
+const UPGRADES = [
+  { id: 'engine', name: 'Engine', icon: '⚙️', stat: 'topSpeed', per: 0.05, desc: 'Top speed' },
+  { id: 'turbo', name: 'Turbo', icon: '🌀', stat: 'nitro', per: 0.08, desc: 'Nitro boost' },
+  { id: 'transmission', name: 'Transmission', icon: '🔩', stat: 'accel', per: 0.05, desc: 'Acceleration' },
+  { id: 'brakes', name: 'Brakes', icon: '🛑', stat: 'brake', per: 0.07, desc: 'Braking' },
+  { id: 'suspension', name: 'Suspension', icon: '🪝', stat: 'handling', per: 0.03, desc: 'Handling' },
+  { id: 'tires', name: 'Tires', icon: '🛞', stat: 'handling', per: 0.03, desc: 'Traction' },
+  { id: 'nitro', name: 'Nitro System', icon: '🔥', stat: 'nitro', per: 0.06, desc: 'Nitro capacity' }
+];
+const UPG_MAX = 5;
+function upgLevel(partId) {
+  const carUpg = save.upgrades[save.selected] || {};
+  return carUpg[partId] || 0;
+}
+function upgCost(partId, level) {
+  return Math.round((800 + level * 700) * (UPGRADES.findIndex((u) => u.id === partId) * 0.15 + 1));
+}
+// Aggregate performance multipliers for the selected car from its upgrades.
+function upgMul() {
+  const m = { topSpeed: 1, accel: 1, handling: 1, brake: 1, nitro: 1 };
+  for (const u of UPGRADES) m[u.stat] += upgLevel(u.id) * u.per;
+  return m;
+}
+function playerLevel() {
+  return 1 + Math.floor(save.best / 800);
+}
+function refreshWallet() {
+  const set = (id, v) => { const e = el(id); if (e) e.textContent = v; };
+  set('bank-coins', save.bank);
+  set('wallet-diamonds', save.diamonds);
+  set('wallet-level', playerLevel());
+  set('best-score', save.best);
+  set('garage-bank', save.bank);
+  set('garage-diamonds', save.diamonds);
+  set('upgrade-bank', save.bank);
+  const car = CARS.find((c) => c.id === save.selected) || CARS[0];
+  const hn = el('hero-car-name');
+  if (hn) hn.textContent = car.name;
 }
 function carColor(id) {
   const c = save.colors[id];
@@ -627,7 +672,8 @@ const game = {
   goal: 1500,
   won: false,
   nextBiomeAt: CONFIG.biomeDistance,
-  boostBurst: 0
+  boostBurst: 0,
+  upg: { topSpeed: 1, accel: 1, handling: 1, brake: 1, nitro: 1 }
 };
 const audio = new AudioKit();
 
@@ -689,6 +735,7 @@ function resetGameVars() {
   game.mixed = !!t.mixed;
   game.biome = t.mixed ? 0 : t.biome;
   game.goal = t.goal;
+  game.upg = upgMul();
   setBiomeTarget();
 }
 
@@ -728,8 +775,7 @@ function endGame() {
   const isBest = game.score > save.best;
   if (isBest) save.best = game.score;
   persist();
-  ui.best.textContent = save.best;
-  ui.bank.textContent = save.bank;
+  refreshWallet();
   ui.goScore.textContent = game.score;
   ui.goCoins.textContent = game.coins;
   ui.goDist.textContent = `${Math.floor(game.distance)} m`;
@@ -750,6 +796,7 @@ function winRun() {
   particles.burst(player.position, 0x2de2e6, 40, { speed: 10, life: 1.1 });
   particles.burst(player.position, 0xffd23f, 30, { speed: 8, life: 1.0 });
   save.bank += game.coins;
+  save.diamonds += 1;
   if (game.score > save.best) save.best = game.score;
   // Unlock the next track
   const next = save.track + 1;
@@ -777,7 +824,7 @@ function winRun() {
 
 // ---------- Garage UI ----------
 function renderGarage() {
-  ui.garageBank.textContent = save.bank;
+  refreshWallet();
   ui.carList.innerHTML = '';
   for (const car of CARS) {
     const owned = save.owned.includes(car.id);
@@ -887,7 +934,63 @@ function renderTracks() {
   );
 }
 
+// ---------- Upgrade UI ----------
+function renderUpgrade() {
+  const list = el('upgrade-list');
+  if (!list) return;
+  refreshWallet();
+  const car = CARS.find((c) => c.id === save.selected) || CARS[0];
+  const nameEl = el('upgrade-car-name');
+  if (nameEl) nameEl.textContent = car.name;
+  list.innerHTML = '';
+  for (const u of UPGRADES) {
+    const level = upgLevel(u.id);
+    const maxed = level >= UPG_MAX;
+    const cost = upgCost(u.id, level);
+    const afford = save.bank >= cost;
+    const pips = Array.from({ length: UPG_MAX }, (_, i) => `<span class="upg-pip${i < level ? ' on' : ''}"></span>`).join('');
+    let action;
+    if (maxed) action = `<button class="upg-buy maxed" disabled>MAX</button>`;
+    else action = `<button class="upg-buy${afford ? '' : ' disabled'}" data-upg="${u.id}" ${afford ? '' : 'disabled'}>🪙 ${cost}</button>`;
+    const row = document.createElement('div');
+    row.className = 'upg-row';
+    row.innerHTML = `
+      <div class="upg-ic">${u.icon}</div>
+      <div class="upg-main">
+        <div class="upg-name">${u.name} <span style="color:var(--muted);font-weight:600">· ${u.desc}</span></div>
+        <div class="upg-pips">${pips}</div>
+      </div>
+      ${action}`;
+    list.appendChild(row);
+  }
+  list.querySelectorAll('[data-upg]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const id = b.dataset.upg;
+      const level = upgLevel(id);
+      if (level >= UPG_MAX) return;
+      const cost = upgCost(id, level);
+      if (save.bank < cost) return;
+      save.bank -= cost;
+      if (!save.upgrades[save.selected]) save.upgrades[save.selected] = {};
+      save.upgrades[save.selected][id] = level + 1;
+      persist();
+      audio.init();
+      audio.coin();
+      renderUpgrade();
+    })
+  );
+}
+
 // ---------- Buttons ----------
+el('btn-upgrade').addEventListener('click', () => {
+  renderUpgrade();
+  ui.menu.classList.add('hidden');
+  el('upgrade').classList.remove('hidden');
+});
+el('btn-upgrade-back').addEventListener('click', () => {
+  el('upgrade').classList.add('hidden');
+  ui.menu.classList.remove('hidden');
+});
 el('btn-play').addEventListener('click', async () => {
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
@@ -917,15 +1020,13 @@ el('btn-tracks-back').addEventListener('click', () => {
 el('btn-retry').addEventListener('click', startGame);
 el('btn-menu').addEventListener('click', () => {
   state = 'menu';
-  ui.best.textContent = save.best;
-  ui.bank.textContent = save.bank;
+  refreshWallet();
   ui.gameover.classList.add('hidden');
   ui.menu.classList.remove('hidden');
 });
 el('btn-win-menu').addEventListener('click', () => {
   state = 'menu';
-  ui.best.textContent = save.best;
-  ui.bank.textContent = save.bank;
+  refreshWallet();
   ui.win.classList.add('hidden');
   ui.menu.classList.remove('hidden');
 });
@@ -1008,19 +1109,20 @@ function update(dt) {
   }
 
   const usingNitro = input.nitro && game.nitro > 0;
-  // top speed ceiling (grows a little with distance, scaled by the car)
-  let vmax = Math.min(CONFIG.baseSpeed + game.distance * 0.02, CONFIG.maxSpeed) * playerStats.topSpeed;
-  if (usingNitro) vmax += CONFIG.nitroBoost;
+  const upg = game.upg;
+  // top speed ceiling (grows a little with distance, scaled by the car + upgrades)
+  let vmax = Math.min(CONFIG.baseSpeed + game.distance * 0.02, CONFIG.maxSpeed) * playerStats.topSpeed * upg.topSpeed;
+  if (usingNitro) vmax += CONFIG.nitroBoost * upg.nitro;
   if (game.boostBurst > 0) {
     vmax += 40;
     game.boostBurst -= dt;
   }
   // Player-controlled throttle / brake / coast
   if (input.brake) {
-    game.speed -= CONFIG.brakeDecel * dt;
+    game.speed -= CONFIG.brakeDecel * upg.brake * dt;
     if (game.speed > 4) particles.trail(new THREE.Vector3(player.position.x, 0.15, player.position.z + 2.4), 0xffffff);
   } else if (input.gas || usingNitro) {
-    game.speed += CONFIG.accel * playerStats.accel * dt;
+    game.speed += CONFIG.accel * playerStats.accel * upg.accel * dt;
   } else {
     game.speed -= CONFIG.coastDecel * dt;
   }
@@ -1084,7 +1186,7 @@ function update(dt) {
   if (steerWheelEl) steerWheelEl.style.transform = `translateX(-50%) rotate(${(steerSmooth * 130).toFixed(1)}deg)`;
   if (hudWheelEl) hudWheelEl.style.transform = `rotate(${(steerSmooth * 140).toFixed(1)}deg)`;
   player.position.x = THREE.MathUtils.clamp(
-    player.position.x + dir * CONFIG.steerSpeed * playerStats.handling * dt,
+    player.position.x + dir * CONFIG.steerSpeed * playerStats.handling * game.upg.handling * dt,
     -roadHalf + 1,
     roadHalf - 1
   );
@@ -1415,8 +1517,7 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---------- Boot ----------
-ui.best.textContent = save.best;
-ui.bank.textContent = save.bank;
+refreshWallet();
 loadSelectedCar();
 setView(viewMode);
 applyEnvironment(1);
