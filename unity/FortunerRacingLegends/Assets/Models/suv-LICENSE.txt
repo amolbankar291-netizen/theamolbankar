@@ -1,0 +1,15 @@
+SUV low-poly model
+-------------------
+Author:  Quaternius (https://poly.pizza/u/Quaternius)
+Source:  https://poly.pizza/m/xsMtZhBkxL
+License: CC0 1.0 Universal (Public Domain)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+You may use this model in commercial and non-commercial projects with no
+attribution required. Attribution is kept here as a courtesy.
+
+Node structure (used by the ModelWheelRig / FortunerSetup import):
+  SUV_Cube            -> body
+  SUV_FrontLeftWheel  -> front-left wheel  (steers + spins)
+  SUV_FrontRightWheel -> front-right wheel (steers + spins)
+  SUV_BackWheels      -> combined rear axle (spins)
