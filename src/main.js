@@ -278,7 +278,10 @@ const save = {
   colors: JSON.parse(localStorage.getItem('fr_colors') || '{}'),
   unlocked: JSON.parse(localStorage.getItem('fr_unlocked') || '[0]'),
   track: Number(localStorage.getItem('fr_track') || 0),
-  upgrades: JSON.parse(localStorage.getItem('fr_upgrades') || '{}')
+  upgrades: JSON.parse(localStorage.getItem('fr_upgrades') || '{}'),
+  dailyDate: localStorage.getItem('fr_dailyDate') || '',
+  freeAt: Number(localStorage.getItem('fr_freeAt') || 0),
+  spinAt: Number(localStorage.getItem('fr_spinAt') || 0)
 };
 function persist() {
   localStorage.setItem('fr_best', String(save.best));
@@ -290,6 +293,9 @@ function persist() {
   localStorage.setItem('fr_unlocked', JSON.stringify(save.unlocked));
   localStorage.setItem('fr_track', String(save.track));
   localStorage.setItem('fr_upgrades', JSON.stringify(save.upgrades));
+  localStorage.setItem('fr_dailyDate', save.dailyDate);
+  localStorage.setItem('fr_freeAt', String(save.freeAt));
+  localStorage.setItem('fr_spinAt', String(save.spinAt));
 }
 
 // ---------- Upgrade system (per-car parts that boost performance) ----------
@@ -861,6 +867,7 @@ function renderGarage() {
         persist();
         audio.init();
         audio.coin();
+        loadSelectedCar();
         renderGarage();
       }
     })
@@ -869,6 +876,7 @@ function renderGarage() {
     b.addEventListener('click', () => {
       save.selected = b.dataset.select;
       persist();
+      loadSelectedCar();
       renderGarage();
     })
   );
@@ -889,6 +897,7 @@ function renderColors() {
     sw.addEventListener('click', () => {
       save.colors[save.selected] = c.hex;
       persist();
+      loadSelectedCar();
       renderGarage();
     });
     ui.colorList.appendChild(sw);
@@ -991,13 +1000,155 @@ el('btn-upgrade-back').addEventListener('click', () => {
   el('upgrade').classList.add('hidden');
   ui.menu.classList.remove('hidden');
 });
-el('btn-play').addEventListener('click', async () => {
+async function beginRace() {
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     try {
       if ((await DeviceOrientationEvent.requestPermission()) === 'granted') enableTilt();
     } catch (_) {}
   }
   startGame();
+}
+el('btn-play').addEventListener('click', beginRace);
+el('btn-career').addEventListener('click', beginRace);
+el('btn-quick').addEventListener('click', () => {
+  // Quick Race: jump to a random unlocked track.
+  const pool = save.unlocked.length ? save.unlocked : [0];
+  save.track = pool[(Math.random() * pool.length) | 0];
+  persist();
+  beginRace();
+});
+
+// ---------- Modal system (settings / leaderboard / missions / rewards) ----------
+const modal = el('modal');
+function openModal(title, html) {
+  el('modal-title').textContent = title;
+  el('modal-body').innerHTML = html;
+  ui.menu.classList.add('hidden');
+  modal.classList.remove('hidden');
+}
+function closeModal() {
+  modal.classList.add('hidden');
+  ui.menu.classList.remove('hidden');
+  refreshWallet();
+}
+el('modal-close').addEventListener('click', closeModal);
+
+function toast(msg) {
+  openModal('REWARD', `<div class="reward-big">${msg}</div>`);
+}
+
+// ---------- Leaderboard ----------
+el('btn-leaderboard').addEventListener('click', () => {
+  const names = ['NightRider', 'ApexKing', 'TurboRaj', 'DriftQueen', 'BlazeX', 'V-Max', 'RoadWolf'];
+  const you = save.best;
+  const entries = names.map((n, i) => ({ n, s: Math.round(you * (1.6 - i * 0.18)) + 500 + i * 130 }));
+  entries.push({ n: 'YOU', s: you, you: true });
+  entries.sort((a, b) => b.s - a.s);
+  const rows = entries
+    .map((e, i) => `<div class="lb-row${e.you ? ' me' : ''}"><span class="lb-rank">${i + 1}</span><span class="lb-name">${e.n}</span><span class="lb-score">${e.s}</span></div>`)
+    .join('');
+  openModal('LEADERBOARD', `<div class="lb-list">${rows}</div>`);
+});
+
+// ---------- Missions ----------
+el('btn-missions').addEventListener('click', () => {
+  const miss = [
+    { t: 'Score 5,000 in a run', cur: save.best, goal: 5000 },
+    { t: 'Own 2 cars', cur: save.owned.length, goal: 2 },
+    { t: 'Unlock 3 tracks', cur: save.unlocked.length, goal: 3 },
+    { t: 'Bank 10,000 coins', cur: save.bank, goal: 10000 }
+  ];
+  const rows = miss
+    .map((m) => {
+      const pct = Math.min(100, (m.cur / m.goal) * 100);
+      const done = m.cur >= m.goal;
+      return `<div class="mission-row">
+        <div class="mission-top"><span>${m.t}</span><span class="mission-badge${done ? ' done' : ''}">${done ? '✓ DONE' : Math.floor(m.cur) + '/' + m.goal}</span></div>
+        <div class="mission-bar"><i style="width:${pct}%"></i></div>
+      </div>`;
+    })
+    .join('');
+  openModal('MISSIONS', rows);
+});
+
+// ---------- Settings ----------
+el('btn-settings').addEventListener('click', () => {
+  openModal(
+    'SETTINGS',
+    `<div class="settings-list">
+      <button class="set-row" id="set-view">🎥 Camera: <b>${viewMode === 'cockpit' ? 'Cockpit' : 'Chase'}</b></button>
+      <button class="set-row" id="set-reset">🗑️ Reset Progress</button>
+      <div class="set-note">Fortuner Racing Legends · Web build</div>
+    </div>`
+  );
+  el('set-view').addEventListener('click', () => {
+    setView(viewMode === 'chase' ? 'cockpit' : 'chase');
+    el('set-view').innerHTML = `🎥 Camera: <b>${viewMode === 'cockpit' ? 'Cockpit' : 'Chase'}</b>`;
+  });
+  el('set-reset').addEventListener('click', () => {
+    if (confirm('Reset all progress, coins and upgrades?')) {
+      localStorage.clear();
+      location.reload();
+    }
+  });
+});
+
+// ---------- Daily reward ----------
+el('btn-daily').addEventListener('click', () => {
+  const today = new Date().toISOString().slice(0, 10);
+  if (save.dailyDate === today) {
+    openModal('DAILY REWARD', `<div class="reward-big">Already claimed today 🎁<br><small>Come back tomorrow!</small></div>`);
+    return;
+  }
+  save.dailyDate = today;
+  save.bank += 500;
+  save.diamonds += 1;
+  persist();
+  audio.init();
+  audio.coin();
+  openModal('DAILY REWARD', `<div class="reward-big">🎁 +500 🪙 &amp; +1 💎</div>`);
+});
+
+// ---------- Free coins (30s cooldown) ----------
+el('btn-freecoins').addEventListener('click', () => {
+  const now = Date.now();
+  if (now - save.freeAt < 30000) {
+    const left = Math.ceil((30000 - (now - save.freeAt)) / 1000);
+    openModal('FREE COINS', `<div class="reward-big">⏳ Wait ${left}s for more coins</div>`);
+    return;
+  }
+  save.freeAt = now;
+  save.bank += 150;
+  persist();
+  audio.init();
+  audio.coin();
+  openModal('FREE COINS', `<div class="reward-big">🪙 +150 coins!</div>`);
+});
+
+// ---------- Spin & win (20s cooldown) ----------
+el('btn-spin').addEventListener('click', () => {
+  const now = Date.now();
+  if (now - save.spinAt < 20000) {
+    const left = Math.ceil((20000 - (now - save.spinAt)) / 1000);
+    openModal('SPIN & WIN', `<div class="reward-big">⏳ Wheel recharging (${left}s)</div>`);
+    return;
+  }
+  save.spinAt = now;
+  const prizes = [
+    { label: '🪙 +100 coins', coins: 100 },
+    { label: '🪙 +300 coins', coins: 300 },
+    { label: '💎 +1 diamond', dia: 1 },
+    { label: '🪙 +500 coins', coins: 500 },
+    { label: '🪙 +50 coins', coins: 50 },
+    { label: '💎 +2 diamonds', dia: 2 }
+  ];
+  const p = prizes[(Math.random() * prizes.length) | 0];
+  if (p.coins) save.bank += p.coins;
+  if (p.dia) save.diamonds += p.dia;
+  persist();
+  audio.init();
+  audio.coin();
+  openModal('SPIN & WIN', `<div class="reward-big">🎡 You won<br>${p.label}!</div>`);
 });
 el('btn-garage').addEventListener('click', () => {
   renderGarage();
@@ -1105,6 +1256,7 @@ function update(dt) {
 
   if (state !== 'playing') {
     applyEnvironment(dt);
+    if (state === 'menu') updateShowroom(dt);
     return;
   }
 
@@ -1454,6 +1606,21 @@ function updateCamera(dt, hot) {
   }
   const targetFov = baseFov + THREE.MathUtils.clamp(speedT, 0, 1.3) * 18;
   camera.fov += (targetFov - camera.fov) * dt * 4;
+  camera.updateProjectionMatrix();
+}
+
+// Showroom: slowly spin the selected car on a "platform" for the menu.
+let showroomAngle = 0.6;
+function updateShowroom(dt) {
+  showroomAngle += dt * 0.4;
+  player.position.set(0, player.position.y, 0);
+  player.rotation.set(0, showroomAngle, 0);
+  const camY = 2.5;
+  const camZ = 7.6;
+  camera.position.set(0.4, camY, camZ);
+  camera.lookAt(0, 0.9, 0);
+  const targetFov = 34;
+  camera.fov += (targetFov - camera.fov) * Math.min(dt * 4, 1);
   camera.updateProjectionMatrix();
 }
 

@@ -141,22 +141,38 @@
           </div>
         </div>
 
-        <div class="menu-hero">
-          <div class="hero-plate">
-            <div class="hero-label">BEST DISTANCE SCORE</div>
-            <div class="hero-best"><b id="best-score">0</b></div>
-            <div class="hero-car-name" id="hero-car-name">FORTUNER GX</div>
+        <div class="menu-mid">
+          <div class="side-nav">
+            <button id="btn-career" class="side-btn primary"><span class="side-ic">🏁</span>CAREER</button>
+            <button id="btn-quick" class="side-btn"><span class="side-ic">⚡</span>QUICK RACE</button>
+            <button id="btn-garage" class="side-btn"><span class="side-ic">🚗</span>GARAGE</button>
+            <button id="btn-upgrade" class="side-btn"><span class="side-ic">🔧</span>UPGRADE</button>
+            <button id="btn-tracks" class="side-btn"><span class="side-ic">🗺️</span>TRACKS</button>
+            <button id="btn-leaderboard" class="side-btn"><span class="side-ic">🏆</span>LEADERBOARD</button>
+            <button id="btn-settings" class="side-btn"><span class="side-ic">⚙️</span>SETTINGS</button>
+          </div>
+          <div class="side-icons">
+            <button id="btn-daily" class="icon-btn"><span class="icon-glyph">🎁</span><small>DAILY</small></button>
+            <button id="btn-missions" class="icon-btn"><span class="icon-glyph">📋</span><small>MISSIONS</small></button>
           </div>
         </div>
 
-        <div class="menu-actions">
-          <div class="menu-nav">
-            <button id="btn-garage" class="nav-tile"><span class="nav-ic">🚗</span><span>GARAGE</span></button>
-            <button id="btn-upgrade" class="nav-tile"><span class="nav-ic">🔧</span><span>UPGRADE</span></button>
-            <button id="btn-tracks" class="nav-tile"><span class="nav-ic">🗺️</span><span>TRACKS</span></button>
+        <div class="menu-bottom">
+          <div class="mini-tiles">
+            <button id="btn-freecoins" class="mini-tile"><span>🪙</span> FREE COINS</button>
+            <button id="btn-spin" class="mini-tile"><span>🎡</span> SPIN &amp; WIN</button>
           </div>
-          <button id="btn-play" class="btn-primary btn-start">▶ START RACE</button>
-          <div class="menu-hint">Steer ← → · Gas ↑ · Brake ↓ · Nitro Space · or use on-screen wheel &amp; pedals</div>
+          <button id="btn-play" class="btn-primary btn-start">▶ START</button>
+          <div class="car-caption"><b id="hero-car-name">FORTUNER GX</b> · BEST <b id="best-score">0</b></div>
+        </div>
+      </div>
+
+      <!-- Reusable modal (settings / leaderboard / missions / rewards) -->
+      <div id="modal" class="overlay hidden">
+        <div class="panel modal-panel">
+          <h2 id="modal-title" class="scr-title">TITLE</h2>
+          <div id="modal-body" class="modal-body"></div>
+          <button id="modal-close" class="btn-secondary">‹ CLOSE</button>
         </div>
       </div>
 
