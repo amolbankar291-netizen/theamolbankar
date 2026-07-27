@@ -2,8 +2,8 @@ name: Instagram daily post
 
 on:
   schedule:
-    # 09:30 UTC daily = 15:00 IST. Adjust as needed (cron is UTC).
-    - cron: "30 9 * * *"
+    # 14:00 UTC daily = 19:30 IST. Adjust as needed (cron is UTC).
+    - cron: "0 14 * * *"
   workflow_dispatch:
     inputs:
       dry_run:

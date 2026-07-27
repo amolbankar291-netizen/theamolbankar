@@ -127,9 +127,18 @@ Commit and push — the next scheduled run will publish it.
 ## Schedule
 
 The workflow (`.github/workflows/instagram-daily-post.yml`) runs at
-**09:30 UTC every day** by default. Adjust the `cron:` line in the
-workflow to change the time. Cron uses UTC — e.g. IST is UTC+5:30, so
-`30 4 * * *` means 10:00 AM IST.
+**14:00 UTC every day** by default, which is **19:30 IST (7:30 PM)**.
+Cron in GitHub Actions uses UTC — IST is UTC+5:30, so to change the
+time, subtract 5h30m from your desired IST time and put that in the
+`cron:` line. Examples:
+
+| Desired IST time | UTC cron           |
+|------------------|--------------------|
+| 07:30 AM         | `0 2 * * *`        |
+| 10:00 AM         | `30 4 * * *`       |
+| 03:00 PM         | `30 9 * * *`       |
+| **07:30 PM**     | **`0 14 * * *`**   |
+| 09:00 PM         | `30 15 * * *`      |
 
 You can also trigger it manually any time from the **Actions** tab
 (`Run workflow` button).
