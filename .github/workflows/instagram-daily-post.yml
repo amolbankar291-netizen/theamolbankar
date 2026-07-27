@@ -2,8 +2,9 @@ name: Instagram daily post
 
 on:
   schedule:
-    # 14:00 UTC daily = 19:30 IST. Adjust as needed (cron is UTC).
-    - cron: "0 14 * * *"
+    # 13:50 UTC = 19:20 IST target. GitHub Actions cron typically drifts
+    # 5-15 min late, so posts should actually land around 19:30 IST (7:30 PM).
+    - cron: "50 13 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
