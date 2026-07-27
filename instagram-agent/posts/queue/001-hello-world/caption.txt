@@ -1,0 +1,3 @@
+Hello from my auto-poster! First post from the daily Instagram agent living in my GitHub repo.
+
+#automation #python #instagramapi

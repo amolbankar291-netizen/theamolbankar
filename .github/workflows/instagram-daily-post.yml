@@ -1,0 +1,66 @@
+name: Instagram daily post
+
+on:
+  schedule:
+    # 09:30 UTC daily = 15:00 IST. Adjust as needed (cron is UTC).
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only — do not call Instagram API or move folders"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+concurrency:
+  group: instagram-daily-post
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: instagram-agent
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: instagram-agent/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Publish next queued post
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          PUBLIC_MEDIA_BASE_URL: >-
+            https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/instagram-agent/posts/queue
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: python post_daily.py
+
+      - name: Commit archived post back to the repo
+        if: ${{ inputs.dry_run != 'true' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -z "$(git status --porcelain instagram-agent/posts)" ]; then
+            echo "No queue changes to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add instagram-agent/posts
+          git commit -m "chore(instagram-agent): archive published post [skip ci]"
+          git push
