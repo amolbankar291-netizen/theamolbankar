@@ -5,9 +5,19 @@ Auto / e-rickshaw short hops (≈ first 2 km) with a **under-10-minute** pickup 
 
 Demo MVP lives in this folder — pure HTML/CSS/JS, no build step, data in `localStorage`.
 
-## App link (public)
+## App links
 
-After GitHub Pages deploys from `main`:
+### Android APK
+After the Actions build finishes:
+
+**https://github.com/amolbankar291-netizen/theamolbankar/releases/tag/wagholi-hop-android-latest**
+
+Download **`wagholi-hop.apk`** → install on phone (allow unknown apps).
+
+Re-build: Actions → **Build WagholiHop Android APK** → Run workflow.
+
+### Web (GitHub Pages)
+After Pages is enabled:
 
 **https://amolbankar291-netizen.github.io/theamolbankar/**
 
@@ -15,8 +25,6 @@ After GitHub Pages deploys from `main`:
 |------|------|
 | Rider / Driver app | https://amolbankar291-netizen.github.io/theamolbankar/ |
 | Family live track | https://amolbankar291-netizen.github.io/theamolbankar/track.html |
-
-Re-deploy: push to `main` (changes under `wagholi-hop/`) or run Actions → **Deploy WagholiHop (GitHub Pages)**.
 
 ## Promise
 

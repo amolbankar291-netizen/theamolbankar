@@ -1,0 +1,19 @@
+{
+  "name": "wagholi-hop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WagholiHop — last-mile auto/e-rickshaw booking for Wagholi",
+  "scripts": {
+    "prepare:www": "node scripts/prepare-www.js",
+    "build": "npm run prepare:www",
+    "cap:sync": "npm run build && npx cap sync android",
+    "android": "npm run cap:sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

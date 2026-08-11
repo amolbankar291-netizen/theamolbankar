@@ -1,0 +1,11 @@
+{
+  "appId": "in.wagholihop.app",
+  "appName": "WagholiHop",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
