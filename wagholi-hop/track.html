@@ -3,33 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f3d2e" />
+    <meta name="theme-color" content="#4aa8d0" />
     <title>Live track · WagholiHop</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./css/styles.css" />
   </head>
   <body class="track-page">
     <div id="app" class="track-shell">
-      <header class="topbar">
+      <header class="topbar-track">
         <div class="brand">
           <span class="brand-mark">WH</span>
           <div>
-            <h1>Live track</h1>
-            <p class="tagline">Family safety view · WagholiHop</p>
+            <p class="brand-kicker">Family safety</p>
+            <h1 style="margin:0;font-family:var(--display);font-size:1.6rem">Live track</h1>
           </div>
         </div>
+        <img class="track-auto-thumb" src="./assets/auto-hero.png" alt="" width="88" height="56" />
       </header>
 
       <div id="sos-banner" class="sos-banner" hidden>
-        🚨 SOS active — rider requested emergency help
+        SOS active — rider requested emergency help
       </div>
 
-      <section class="card">
+      <section class="panel accent-edge">
         <div class="section-head">
           <h3 id="route-title">Loading trip…</h3>
           <span class="status-dot live" id="live-dot"></span>
@@ -54,11 +55,25 @@
           <a class="primary-btn call-link" href="tel:112">Call 112</a>
           <a class="ghost-btn" id="open-app" href="./index.html">Open app</a>
         </div>
-        <p class="hint">
-          Demo link animates from shared trip data. Production would stream real GPS.
-        </p>
+        <p class="hint">Demo tracking animates from shared trip data.</p>
       </section>
     </div>
+
+    <style>
+      .topbar-track {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .track-auto-thumb {
+        width: 96px;
+        height: auto;
+        filter: drop-shadow(0 8px 12px rgba(0,0,0,.15));
+        animation: idle-bob 3s ease-in-out infinite;
+      }
+    </style>
 
     <script type="module">
       import {
@@ -95,7 +110,6 @@
           return;
         }
 
-        // Recompute position from timestamps so link stays “live”
         const pos = vehiclePosition(snapshot);
         const progress = rideProgress(snapshot);
         snapshot.vehicleX = pos.x;

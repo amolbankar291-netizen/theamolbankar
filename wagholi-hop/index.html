@@ -6,13 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0f3d2e" />
+    <meta name="theme-color" content="#4aa8d0" />
     <meta name="description" content="WagholiHop — auto & e-rickshaw short hops inside Wagholi in under 10 minutes." />
     <title>WagholiHop — Ride in 10 mins</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./css/styles.css" />
@@ -20,37 +20,63 @@
   </head>
   <body>
     <div id="app">
-      <!-- Top bar -->
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true">WH</span>
-          <div>
-            <h1>WagholiHop</h1>
-            <p class="tagline">First 2 km · under 10 mins</p>
-          </div>
+      <!-- Full-bleed hero with auto art -->
+      <header class="hero">
+        <div class="hero-sky" aria-hidden="true">
+          <span class="cloud c1"></span>
+          <span class="cloud c2"></span>
+          <span class="cloud c3"></span>
+          <span class="sun"></span>
         </div>
-        <div class="mode-switch" role="tablist" aria-label="App mode">
-          <button class="mode-btn active" data-mode="rider" type="button">Rider</button>
-          <button class="mode-btn" data-mode="driver" type="button">Driver</button>
-          <button class="mode-btn" data-mode="hubs" type="button">Hubs</button>
-        </div>
-      </header>
 
-      <!-- RIDER -->
-      <section id="view-rider" class="view active">
-        <div class="hero-strip">
-          <div>
-            <p class="eyebrow">Blinkit-speed last mile</p>
-            <h2>Book a short hop inside Wagholi</h2>
-            <p class="hero-copy">Autos & e-rickshaws from nearby hubs — school, clinic, kirana, evening market.</p>
+        <div class="hero-top">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">WH</span>
+            <div>
+              <p class="brand-kicker">Wagholi · Pune</p>
+              <h1>WagholiHop</h1>
+            </div>
           </div>
           <div class="promise-pill">
             <span class="promise-num" id="promise-eta">~6</span>
-            <span class="promise-unit">min ETA</span>
+            <span class="promise-unit">min</span>
           </div>
         </div>
 
-        <div class="card book-card">
+        <div class="hero-copy-block">
+          <h2>Hop across Wagholi in under 10 mins</h2>
+          <p>School, clinic, kirana, evening market — short auto rides from nearby hubs.</p>
+        </div>
+
+        <div class="hero-cta">
+          <a class="primary-btn hero-book" href="#book-panel">Book a hop</a>
+          <p class="hero-fare-hint">Fixed fares from ₹30 · first 2 km</p>
+        </div>
+
+        <div class="hero-art">
+          <img
+            src="./assets/auto-hero.png"
+            alt="Yellow auto rickshaw ready for a WagholiHop ride"
+            width="720"
+            height="420"
+            decoding="async"
+          />
+        </div>
+      </header>
+
+      <div class="mode-switch sticky-modes" role="tablist" aria-label="App mode">
+        <button class="mode-btn active" data-mode="rider" type="button">Rider</button>
+        <button class="mode-btn" data-mode="driver" type="button">Driver</button>
+        <button class="mode-btn" data-mode="hubs" type="button">Hubs</button>
+      </div>
+
+      <!-- RIDER -->
+      <section id="view-rider" class="view active">
+        <div class="panel" id="book-panel">
+          <div class="panel-head">
+            <h3>Where to?</h3>
+            <span class="badge-live">Hubs live</span>
+          </div>
           <label class="field">
             <span>Pickup hub</span>
             <select id="pickup-hub"></select>
@@ -77,20 +103,20 @@
           <p class="hint">Service area capped at ~2.5 km. Beyond that → use Ola/Uber.</p>
         </div>
 
-        <div class="card">
+        <div class="panel soft">
           <div class="section-head">
             <h3>Saved places</h3>
           </div>
           <div id="saved-places" class="chip-row"></div>
         </div>
 
-        <div class="card" id="active-ride-card" hidden>
+        <div class="panel accent-edge" id="active-ride-card" hidden>
           <div class="section-head">
             <h3>Active ride</h3>
             <span class="status-dot" id="ride-status-dot"></span>
           </div>
           <div id="sos-banner-rider" class="sos-banner" hidden>
-            🚨 SOS sent to emergency contact &amp; 112 shortcut ready
+            SOS sent to emergency contact &amp; 112 shortcut ready
           </div>
           <div id="live-map-rider" class="live-map" aria-label="Live ride map"></div>
           <p class="safety-line" id="safety-line"></p>
@@ -105,7 +131,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="panel soft">
           <div class="section-head">
             <h3>Safety contact</h3>
           </div>
@@ -118,10 +144,10 @@
             <input id="emergency-phone" type="tel" placeholder="98765 43210" autocomplete="tel" />
           </label>
           <button id="save-emergency-btn" class="ghost-btn" type="button">Save safety contact</button>
-          <p class="hint">Used for live track share + SOS alert (demo copies message / opens dialer).</p>
+          <p class="hint">Used for live track share + SOS alert.</p>
         </div>
 
-        <div class="card">
+        <div class="panel soft">
           <div class="section-head">
             <h3>Recent trips</h3>
           </div>
@@ -131,7 +157,10 @@
 
       <!-- DRIVER -->
       <section id="view-driver" class="view">
-        <div class="card driver-status-card">
+        <div class="panel driver-status-card">
+          <div class="mini-auto" aria-hidden="true">
+            <img src="./assets/auto-hero.png" alt="" />
+          </div>
           <div class="driver-toggle-row">
             <div>
               <h2>Driver mode</h2>
@@ -162,14 +191,14 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="panel soft">
           <div class="section-head">
             <h3>Incoming requests</h3>
           </div>
           <div id="driver-requests" class="list empty-state">Go online to receive nearby short-hop pings.</div>
         </div>
 
-        <div class="card" id="driver-active-card" hidden>
+        <div class="panel" id="driver-active-card" hidden>
           <div class="section-head">
             <h3>Current trip</h3>
           </div>
@@ -184,7 +213,7 @@
 
       <!-- HUBS / OPS -->
       <section id="view-hubs" class="view">
-        <div class="card">
+        <div class="panel">
           <div class="section-head">
             <h3>Live hubs — Wagholi</h3>
             <button id="refresh-hubs" class="ghost-btn" type="button">Refresh</button>
@@ -192,7 +221,7 @@
           <div id="hub-map" class="hub-map" aria-label="Wagholi hub map"></div>
           <ul id="hub-list" class="list"></ul>
         </div>
-        <div class="card">
+        <div class="panel soft">
           <div class="section-head">
             <h3>Fare zones</h3>
           </div>
@@ -201,14 +230,12 @@
       </section>
 
       <footer class="footer">
-        <p>Demo MVP · local storage only · Wagholi, Pune</p>
+        <p>WagholiHop · Wagholi, Pune · short hops only</p>
       </footer>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <!-- OTP modal -->
     <dialog id="otp-dialog">
       <form method="dialog" id="otp-form">
         <h3>Enter rider OTP</h3>
@@ -221,7 +248,6 @@
       </form>
     </dialog>
 
-    <!-- SOS confirm -->
     <dialog id="sos-dialog">
       <form method="dialog" id="sos-form">
         <h3>Send SOS?</h3>
