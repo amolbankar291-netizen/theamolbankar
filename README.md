@@ -1,3 +1,15 @@
+# theamolbankar
+
+Monorepo of Amol Bankar apps.
+
+| App | Folder | What it is |
+| --- | ------ | ---------- |
+| **WagholiHop** | [`wagholi-hop/`](./wagholi-hop/) | Last-mile auto/e-rickshaw booking inside Wagholi (≤2 km, &lt;10 min) |
+| **Fortuner Rush** | repo root (`src/`, `index.html`) | 3D arcade SUV racer (Vite + Capacitor) |
+| **Instagram agent** | [`instagram-agent/`](./instagram-agent/) | Daily Instagram posting helper |
+
+---
+
 # 🏁 Fortuner Rush
 
 A **Fast & Furious-style 3D arcade street racer**. Weave through traffic at insane speed,

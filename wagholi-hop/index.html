@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f3d2e" />
+    <meta name="description" content="WagholiHop — auto & e-rickshaw short hops inside Wagholi in under 10 minutes." />
+    <title>WagholiHop — Ride in 10 mins</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">WH</span>
+          <div>
+            <h1>WagholiHop</h1>
+            <p class="tagline">First 2 km · under 10 mins</p>
+          </div>
+        </div>
+        <div class="mode-switch" role="tablist" aria-label="App mode">
+          <button class="mode-btn active" data-mode="rider" type="button">Rider</button>
+          <button class="mode-btn" data-mode="driver" type="button">Driver</button>
+          <button class="mode-btn" data-mode="hubs" type="button">Hubs</button>
+        </div>
+      </header>
+
+      <!-- RIDER -->
+      <section id="view-rider" class="view active">
+        <div class="hero-strip">
+          <div>
+            <p class="eyebrow">Blinkit-speed last mile</p>
+            <h2>Book a short hop inside Wagholi</h2>
+            <p class="hero-copy">Autos & e-rickshaws from nearby hubs — school, clinic, kirana, evening market.</p>
+          </div>
+          <div class="promise-pill">
+            <span class="promise-num" id="promise-eta">~6</span>
+            <span class="promise-unit">min ETA</span>
+          </div>
+        </div>
+
+        <div class="card book-card">
+          <label class="field">
+            <span>Pickup hub</span>
+            <select id="pickup-hub"></select>
+          </label>
+          <label class="field">
+            <span>Drop place</span>
+            <select id="drop-place"></select>
+          </label>
+          <div class="fare-row">
+            <div>
+              <span class="muted">Fixed fare</span>
+              <strong id="fare-display">₹30</strong>
+            </div>
+            <div>
+              <span class="muted">Distance</span>
+              <strong id="distance-display">1.2 km</strong>
+            </div>
+            <div>
+              <span class="muted">Promise</span>
+              <strong id="sla-display">≤ 10 min</strong>
+            </div>
+          </div>
+          <button id="book-btn" class="primary-btn" type="button">Book ride now</button>
+          <p class="hint">Service area capped at ~2.5 km. Beyond that → use Ola/Uber.</p>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Saved places</h3>
+          </div>
+          <div id="saved-places" class="chip-row"></div>
+        </div>
+
+        <div class="card" id="active-ride-card" hidden>
+          <div class="section-head">
+            <h3>Active ride</h3>
+            <span class="status-dot" id="ride-status-dot"></span>
+          </div>
+          <div id="active-ride"></div>
+          <div class="ride-actions">
+            <button id="share-ride-btn" class="ghost-btn" type="button">Share trip</button>
+            <button id="cancel-ride-btn" class="danger-btn" type="button">Cancel</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Recent trips</h3>
+          </div>
+          <ul id="trip-history" class="list"></ul>
+        </div>
+      </section>
+
+      <!-- DRIVER -->
+      <section id="view-driver" class="view">
+        <div class="card driver-status-card">
+          <div class="driver-toggle-row">
+            <div>
+              <h2>Driver mode</h2>
+              <p class="muted" id="driver-online-label">You're offline</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="driver-online" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <label class="field">
+            <span>Parked hub</span>
+            <select id="driver-hub"></select>
+          </label>
+          <div class="stats-row">
+            <div class="stat">
+              <span class="muted">Today</span>
+              <strong id="driver-earnings">₹0</strong>
+            </div>
+            <div class="stat">
+              <span class="muted">Trips</span>
+              <strong id="driver-trips">0</strong>
+            </div>
+            <div class="stat">
+              <span class="muted">Accept SLA</span>
+              <strong>90s</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Incoming requests</h3>
+          </div>
+          <div id="driver-requests" class="list empty-state">Go online to receive nearby short-hop pings.</div>
+        </div>
+
+        <div class="card" id="driver-active-card" hidden>
+          <div class="section-head">
+            <h3>Current trip</h3>
+          </div>
+          <div id="driver-active"></div>
+          <div class="ride-actions">
+            <button id="arrived-btn" class="ghost-btn" type="button">Arrived at pickup</button>
+            <button id="start-trip-btn" class="primary-btn" type="button">Start with OTP</button>
+            <button id="complete-trip-btn" class="primary-btn" type="button" hidden>Complete trip</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- HUBS / OPS -->
+      <section id="view-hubs" class="view">
+        <div class="card">
+          <div class="section-head">
+            <h3>Live hubs — Wagholi</h3>
+            <button id="refresh-hubs" class="ghost-btn" type="button">Refresh</button>
+          </div>
+          <div id="hub-map" class="hub-map" aria-label="Wagholi hub map"></div>
+          <ul id="hub-list" class="list"></ul>
+        </div>
+        <div class="card">
+          <div class="section-head">
+            <h3>Fare zones</h3>
+          </div>
+          <ul id="fare-zones" class="list"></ul>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>Demo MVP · local storage only · Wagholi, Pune</p>
+      </footer>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- OTP modal -->
+    <dialog id="otp-dialog">
+      <form method="dialog" id="otp-form">
+        <h3>Enter rider OTP</h3>
+        <p class="muted">Ask the rider for the 4-digit code shown on their phone.</p>
+        <input id="otp-input" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="one-time-code" />
+        <div class="ride-actions">
+          <button value="cancel" class="ghost-btn" type="submit">Cancel</button>
+          <button id="otp-confirm" value="confirm" class="primary-btn" type="submit">Confirm start</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

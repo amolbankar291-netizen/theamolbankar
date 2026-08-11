@@ -1,0 +1,61 @@
+# WagholiHop
+
+**Blinkit-speed last-mile rides inside Wagholi, Pune.**  
+Auto / e-rickshaw short hops (≈ first 2 km) with a **under-10-minute** pickup promise.
+
+Demo MVP lives in this folder — pure HTML/CSS/JS, no build step, data in `localStorage`.
+
+## Promise
+
+- Service area: Wagholi hubs + nearby junctions only  
+- Max trip: ~2.5 km  
+- Fixed zone fares (₹30–₹55 typical)  
+- Hub-parked vehicles (not city-wide cab search)  
+- Rider OTP to start trip  
+
+## Run locally
+
+Any static server from this folder:
+
+```bash
+# Python
+python -m http.server 5177
+
+# or Node (if installed)
+npx --yes serve .
+```
+
+Open `http://localhost:5177`.
+
+Or open `index.html` directly in a modern browser (modules need a local server for some browsers).
+
+## App modes
+
+| Mode | What it does |
+|------|----------------|
+| **Rider** | Pick hub → drop place → fixed fare → book → track OTP trip |
+| **Driver** | Go online at a hub → accept 90s pings → arrive → OTP start → complete |
+| **Hubs** | Live hub map + fare zones for ops |
+
+## Try the demo flow
+
+1. **Rider** → Book from *Park Street* to *School*  
+2. Switch to **Driver** → Go **Online** → **Accept** (or wait for mock fleet auto-assign)  
+3. Mark arrived → Start with OTP shown on Rider screen → Complete  
+
+## Repo location
+
+Part of [`theamolbankar`](https://github.com/amolbankar291-netizen/theamolbankar)  
+Path: `wagholi-hop/`
+
+## Next (production)
+
+- Real GPS + Mapbox/Google ETA  
+- Firebase/Supabase realtime matching  
+- Razorpay UPI  
+- Capacitor Android/iOS wrap (same pattern as Fortuner Rush in this repo)  
+- Society + school WhatsApp onboarding  
+
+## Stack
+
+Vanilla ES modules · CSS variables · localStorage · PWA manifest
