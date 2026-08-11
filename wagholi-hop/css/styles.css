@@ -211,6 +211,7 @@ body {
 }
 
 .field select,
+.field input,
 #otp-input {
   width: 100%;
   border: 1px solid var(--line);
@@ -219,6 +220,130 @@ body {
   font: inherit;
   background: #fff;
   color: var(--ink);
+}
+
+.live-map {
+  position: relative;
+  height: 200px;
+  border-radius: 18px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.45), transparent 40%),
+    linear-gradient(160deg, #c9e5d4, #a9d0b8 45%, #dfeee5);
+}
+
+.track-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  z-index: 2;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.map-pin.pickup {
+  background: var(--brand);
+}
+
+.map-pin.drop {
+  background: #245b9a;
+}
+
+.map-vehicle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  transition: left 0.8s linear, top 0.8s linear;
+}
+
+.map-vehicle span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #12231c;
+  font-size: 1rem;
+  box-shadow: 0 0 0 6px rgba(31, 122, 84, 0.2);
+}
+
+.map-vehicle.sos span,
+.track-svg.sos-active + .map-vehicle span {
+  background: var(--danger);
+  box-shadow: 0 0 0 6px rgba(180, 35, 24, 0.25);
+  animation: pulse 1s ease infinite;
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.safety-line {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--brand-2);
+}
+
+.sos-btn {
+  flex: 1;
+  border: 0;
+  border-radius: 14px;
+  padding: 13px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, #d92d20, #912018);
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.sos-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+body.sos-mode {
+  background:
+    radial-gradient(900px 400px at 50% -10%, rgba(180, 35, 24, 0.22), transparent 50%),
+    linear-gradient(180deg, #f7e8e6, #e8f2ec);
+}
+
+.track-page #app,
+.track-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+a.primary-btn,
+a.ghost-btn,
+a.call-link {
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .fare-row {

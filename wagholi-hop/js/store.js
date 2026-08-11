@@ -4,6 +4,10 @@ const defaultState = () => ({
   riderName: "You",
   history: [],
   activeRide: null,
+  emergencyContact: {
+    name: "",
+    phone: "",
+  },
   driver: {
     online: false,
     hubId: "park-street",
@@ -11,14 +15,26 @@ const defaultState = () => ({
     trips: 0,
     activeTripId: null,
   },
-  queue: [], // pending requests visible to drivers
+  queue: [],
 });
 
 export function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
-    return { ...defaultState(), ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...defaultState(),
+      ...parsed,
+      emergencyContact: {
+        ...defaultState().emergencyContact,
+        ...(parsed.emergencyContact || {}),
+      },
+      driver: {
+        ...defaultState().driver,
+        ...(parsed.driver || {}),
+      },
+    };
   } catch {
     return defaultState();
   }

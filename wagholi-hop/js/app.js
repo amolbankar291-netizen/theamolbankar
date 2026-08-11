@@ -8,11 +8,23 @@ import {
   placeById,
 } from "./data.js";
 import { loadState, saveState, uid, otp4 } from "./store.js";
+import {
+  coordsForHub,
+  coordsForPlace,
+  buildLiveSnapshot,
+  publishLive,
+  liveTrackUrl,
+  shareText,
+  renderTrackMap,
+  statusSafetyLabel,
+  EMERGENCY_INDIA,
+  vehiclePosition,
+} from "./safety.js";
 
 const state = loadState();
 let toastTimer;
-let acceptTimers = new Map();
 let etaTimer;
+let trackTimer;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -21,11 +33,25 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
 }
 
 function persist() {
   saveState(state);
+  syncLivePublish();
+}
+
+function syncLivePublish() {
+  const ride = state.activeRide;
+  if (!ride || ["completed", "cancelled"].includes(ride.status)) {
+    publishLive(null);
+    return;
+  }
+  // refresh vehicle coords on ride object for track page
+  const pos = vehiclePosition(ride);
+  ride.vehicleX = pos.x;
+  ride.vehicleY = pos.y;
+  publishLive(buildLiveSnapshot(ride, state.emergencyContact));
 }
 
 function setMode(mode) {
@@ -55,6 +81,9 @@ function fillSelects() {
   pickup.value = HUBS[0].id;
   drop.value = "dnyanada-school";
   driverHub.value = state.driver.hubId;
+
+  $("#emergency-name").value = state.emergencyContact.name || "";
+  $("#emergency-phone").value = state.emergencyContact.phone || "";
 }
 
 function quote() {
@@ -91,7 +120,7 @@ function renderHistory() {
     .map(
       (t) => `<li class="list-item">
         <strong>${t.from} → ${t.to}</strong>
-        <small>₹${t.fare} · ${t.km} km · ${t.status} · ${new Date(t.at).toLocaleString()}</small>
+        <small>₹${t.fare} · ${t.km} km · ${t.status}${t.sos ? " · SOS" : ""} · ${new Date(t.at).toLocaleString()}</small>
       </li>`
     )
     .join("");
@@ -102,18 +131,24 @@ function renderActiveRide() {
   const ride = state.activeRide;
   if (!ride) {
     card.hidden = true;
+    document.body.classList.remove("sos-mode");
     clearInterval(etaTimer);
+    clearInterval(trackTimer);
+    publishLive(null);
     return;
   }
   card.hidden = false;
-  const live = ride.status === "on_trip" || ride.status === "driver_assigned";
+  const live = ["on_trip", "driver_assigned", "arrived"].includes(ride.status);
   $("#ride-status-dot").classList.toggle("live", live);
+  $("#sos-banner-rider").hidden = !ride.sos;
+  document.body.classList.toggle("sos-mode", !!ride.sos);
+  $("#safety-line").textContent = statusSafetyLabel(ride.status);
 
   const statusLabel = {
     searching: "Finding nearest hub vehicle…",
     driver_assigned: `${ride.driverName} is arriving`,
     arrived: "Driver arrived — share OTP",
-    on_trip: "Trip in progress",
+    on_trip: "Trip in progress · live tracking on",
     completed: "Completed",
     cancelled: "Cancelled",
   }[ride.status];
@@ -124,12 +159,28 @@ function renderActiveRide() {
       <small>${statusLabel}</small>
       <small>Fare ₹${ride.fare} · OTP <strong>${ride.otp}</strong> · ETA ${ride.etaMins} min</small>
       ${ride.vehicle ? `<small>Vehicle: ${ride.vehicle}</small>` : ""}
+      ${ride.sos ? `<small>🚨 SOS active since ${new Date(ride.sosAt).toLocaleTimeString()}</small>` : ""}
     </div>
   `;
+
+  renderTrackMap($("#live-map-rider"), ride, { label: "🛺" });
+  startTrackLoop();
+}
+
+function startTrackLoop() {
+  clearInterval(trackTimer);
+  trackTimer = setInterval(() => {
+    if (!state.activeRide) {
+      clearInterval(trackTimer);
+      return;
+    }
+    syncLivePublish();
+    renderTrackMap($("#live-map-rider"), state.activeRide, { label: "🛺" });
+    $("#safety-line").textContent = statusSafetyLabel(state.activeRide.status);
+  }, 1000);
 }
 
 function simulateAssignment(rideId) {
-  // Blinkit-style: assign from hub fleet in ~2–4s if drivers online, else mock fleet.
   setTimeout(() => {
     const ride = state.activeRide;
     if (!ride || ride.id !== rideId || ride.status !== "searching") return;
@@ -140,21 +191,20 @@ function simulateAssignment(rideId) {
       : DRIVER_NAMES[Math.floor(Math.random() * DRIVER_NAMES.length)];
 
     ride.status = "driver_assigned";
+    ride.assignedAt = Date.now();
     ride.driverName = driverName;
     ride.vehicle = Math.random() > 0.45 ? "E-rickshaw · MH12 ER" : "Auto · MH12 AB";
     ride.etaMins = Math.max(3, (hubById(ride.hubId)?.etaMins ?? 6) - 1);
     persist();
     renderActiveRide();
-    toast(`${driverName} accepted · arriving in ~${ride.etaMins} min`);
+    toast(`${driverName} accepted · live track started`);
 
-    // If local driver is online, also put on their active trip
     if (onlineDriver) {
       state.driver.activeTripId = ride.id;
       state.queue = state.queue.filter((q) => q.id !== ride.id);
       persist();
       renderDriver();
     } else {
-      // Auto progress mock fleet
       setTimeout(() => {
         if (state.activeRide?.id === rideId && state.activeRide.status === "driver_assigned") {
           state.activeRide.status = "arrived";
@@ -201,10 +251,13 @@ function bookRide() {
   const ride = {
     id: uid("ride"),
     hubId: hub.id,
+    placeId: place.id,
     from: hub.name,
     to: place.name,
     fromZone: hub.zone,
     toZone: place.zone,
+    pickupCoords: coordsForHub(hub.id),
+    dropCoords: coordsForPlace(place.id),
     fare,
     km,
     otp: otp4(),
@@ -212,6 +265,10 @@ function bookRide() {
     etaMins: hub.etaMins,
     driverName: null,
     vehicle: null,
+    sos: false,
+    sosAt: null,
+    assignedAt: null,
+    tripStartedAt: null,
     createdAt: Date.now(),
   };
 
@@ -241,6 +298,7 @@ function cancelRide() {
     fare: ride.fare,
     km: ride.km,
     status: "cancelled",
+    sos: !!ride.sos,
     at: Date.now(),
   });
   state.queue = state.queue.filter((q) => q.id !== ride.id);
@@ -253,15 +311,92 @@ function cancelRide() {
   toast("Ride cancelled");
 }
 
-function shareRide() {
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  return false;
+}
+
+async function shareLiveTrack() {
   const ride = state.activeRide;
   if (!ride) return;
-  const text = `WagholiHop trip: ${ride.from} → ${ride.to}. OTP ${ride.otp}. Fare ₹${ride.fare}. Track in app.`;
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast("Trip details copied"));
-  } else {
-    toast(text);
+  const snap = buildLiveSnapshot(ride, state.emergencyContact);
+  const url = liveTrackUrl(snap);
+  const text = shareText(ride, url);
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "WagholiHop live track", text, url });
+      toast("Live track shared");
+      return;
+    } catch {
+      /* fall through */
+    }
   }
+
+  const ok = await copyText(text);
+  toast(ok ? "Live track link copied" : url);
+}
+
+async function shareRide() {
+  const ride = state.activeRide;
+  if (!ride) return;
+  const snap = buildLiveSnapshot(ride, state.emergencyContact);
+  const url = liveTrackUrl(snap);
+  const text =
+    `WagholiHop trip: ${ride.from} → ${ride.to}. ` +
+    `Driver ${ride.driverName || "pending"}. OTP ${ride.otp}. ` +
+    `Live: ${url}`;
+  const ok = await copyText(text);
+  toast(ok ? "Trip + live link copied" : text);
+}
+
+async function triggerSos() {
+  const ride = state.activeRide;
+  if (!ride) return;
+
+  ride.sos = true;
+  ride.sosAt = Date.now();
+  persist();
+  renderActiveRide();
+
+  const snap = buildLiveSnapshot(ride, state.emergencyContact);
+  const url = liveTrackUrl(snap);
+  const contact = state.emergencyContact;
+  const alertText =
+    `🚨 WagholiHop SOS\n` +
+    `Rider needs help on ${ride.from} → ${ride.to}\n` +
+    `Driver: ${ride.driverName || "unknown"} · ${ride.vehicle || "—"}\n` +
+    `Live track: ${url}\n` +
+    (contact.phone ? `Also alert: ${contact.name || "contact"} ${contact.phone}\n` : "") +
+    `Call ${EMERGENCY_INDIA} if needed.`;
+
+  await copyText(alertText);
+
+  if (contact.phone) {
+    // Prefer WhatsApp if available; otherwise sms link
+    const wa = `https://wa.me/91${contact.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(alertText)}`;
+    window.open(wa, "_blank");
+  }
+
+  // Open emergency dialer
+  window.location.href = `tel:${EMERGENCY_INDIA}`;
+  toast("SOS alert prepared — live link copied");
+}
+
+function saveEmergency() {
+  state.emergencyContact = {
+    name: $("#emergency-name").value.trim(),
+    phone: $("#emergency-phone").value.trim(),
+  };
+  persist();
+  toast(
+    state.emergencyContact.phone
+      ? `Saved ${state.emergencyContact.name || "contact"}`
+      : "Add a phone number for SOS WhatsApp"
+  );
 }
 
 /* ---------------- Driver ---------------- */
@@ -323,8 +458,9 @@ function renderDriver() {
   $("#driver-active").innerHTML = `
     <div class="list-item">
       <strong>${ride.from} → ${ride.to}</strong>
-      <small>Status: ${ride.status.replaceAll("_", " ")}</small>
+      <small>Status: ${ride.status.replaceAll("_", " ")}${ride.sos ? " · 🚨 SOS" : ""}</small>
       <small>Collect OTP from rider to start · Fare ₹${ride.fare}</small>
+      <small>Rider is live-tracked for family safety</small>
     </div>
   `;
 
@@ -351,6 +487,7 @@ function acceptRequest(id) {
   }
 
   ride.status = "driver_assigned";
+  ride.assignedAt = Date.now();
   ride.driverName = "You (demo driver)";
   ride.vehicle = "E-rickshaw · DEMO";
   ride.etaMins = hubById(state.driver.hubId)?.etaMins ?? 5;
@@ -359,7 +496,7 @@ function acceptRequest(id) {
   persist();
   renderActiveRide();
   renderDriver();
-  toast("Trip accepted — navigate to pickup");
+  toast("Trip accepted — you are now live-tracked");
   startEtaCountdown();
 }
 
@@ -387,10 +524,11 @@ function startWithOtp(entered) {
     return false;
   }
   ride.status = "on_trip";
+  ride.tripStartedAt = Date.now();
   persist();
   renderActiveRide();
   renderDriver();
-  toast("Trip started");
+  toast("Trip started · live tracking for family");
   return true;
 }
 
@@ -404,6 +542,7 @@ function completeTrip() {
     fare: ride.fare,
     km: ride.km,
     status: "completed",
+    sos: !!ride.sos,
     at: Date.now(),
   });
   state.driver.earnings += ride.fare;
@@ -467,6 +606,17 @@ function bind() {
   $("#book-btn").addEventListener("click", bookRide);
   $("#cancel-ride-btn").addEventListener("click", cancelRide);
   $("#share-ride-btn").addEventListener("click", shareRide);
+  $("#share-live-btn").addEventListener("click", shareLiveTrack);
+  $("#sos-btn").addEventListener("click", () => $("#sos-dialog").showModal());
+  $("#save-emergency-btn").addEventListener("click", saveEmergency);
+
+  $("#sos-form").addEventListener("submit", (e) => {
+    const submitter = e.submitter;
+    if (submitter?.value === "cancel") return;
+    e.preventDefault();
+    $("#sos-dialog").close();
+    triggerSos();
+  });
 
   $("#saved-places").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-place]");
@@ -529,11 +679,11 @@ function init() {
   renderHubs();
   bind();
 
-  // Resume mock assignment if page reloaded mid-search
   if (state.activeRide?.status === "searching") {
     simulateAssignment(state.activeRide.id);
   } else if (state.activeRide) {
     startEtaCountdown();
+    startTrackLoop();
   }
 }
 

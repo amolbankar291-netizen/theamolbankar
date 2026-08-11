@@ -89,11 +89,36 @@
             <h3>Active ride</h3>
             <span class="status-dot" id="ride-status-dot"></span>
           </div>
+          <div id="sos-banner-rider" class="sos-banner" hidden>
+            🚨 SOS sent to emergency contact &amp; 112 shortcut ready
+          </div>
+          <div id="live-map-rider" class="live-map" aria-label="Live ride map"></div>
+          <p class="safety-line" id="safety-line"></p>
           <div id="active-ride"></div>
           <div class="ride-actions">
-            <button id="share-ride-btn" class="ghost-btn" type="button">Share trip</button>
+            <button id="share-live-btn" class="primary-btn" type="button">Share live track</button>
+            <button id="share-ride-btn" class="ghost-btn" type="button">Share details</button>
+          </div>
+          <div class="ride-actions">
+            <button id="sos-btn" class="sos-btn" type="button">SOS</button>
             <button id="cancel-ride-btn" class="danger-btn" type="button">Cancel</button>
           </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <h3>Safety contact</h3>
+          </div>
+          <label class="field">
+            <span>Trusted person name</span>
+            <input id="emergency-name" type="text" placeholder="Parent / spouse / friend" autocomplete="name" />
+          </label>
+          <label class="field">
+            <span>Phone (WhatsApp / call)</span>
+            <input id="emergency-phone" type="tel" placeholder="98765 43210" autocomplete="tel" />
+          </label>
+          <button id="save-emergency-btn" class="ghost-btn" type="button">Save safety contact</button>
+          <p class="hint">Used for live track share + SOS alert (demo copies message / opens dialer).</p>
         </div>
 
         <div class="card">
@@ -192,6 +217,20 @@
         <div class="ride-actions">
           <button value="cancel" class="ghost-btn" type="submit">Cancel</button>
           <button id="otp-confirm" value="confirm" class="primary-btn" type="submit">Confirm start</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- SOS confirm -->
+    <dialog id="sos-dialog">
+      <form method="dialog" id="sos-form">
+        <h3>Send SOS?</h3>
+        <p class="muted">
+          This alerts your safety contact with a live track link and opens India’s emergency number 112.
+        </p>
+        <div class="ride-actions">
+          <button value="cancel" class="ghost-btn" type="submit">Not now</button>
+          <button value="confirm" class="sos-btn" type="submit">Send SOS</button>
         </div>
       </form>
     </dialog>

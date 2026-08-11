@@ -13,6 +13,16 @@ Demo MVP lives in this folder — pure HTML/CSS/JS, no build step, data in `loca
 - Hub-parked vehicles (not city-wide cab search)  
 - Rider OTP to start trip  
 
+## Safety pack
+
+- **Live map** on the active ride (vehicle moves pickup → drop)
+- **Share live track** → opens `track.html` for family (link in WhatsApp)
+- **Safety contact** saved in the app (name + phone)
+- **SOS** → copies alert + live link, opens WhatsApp to contact, dials **112**
+- OTP still required before trip start  
+
+> Demo tracking is simulated from trip timestamps (no real GPS yet). Production would stream driver location.
+
 ## Run locally
 
 Any static server from this folder:
@@ -39,9 +49,11 @@ Or open `index.html` directly in a modern browser (modules need a local server f
 
 ## Try the demo flow
 
-1. **Rider** → Book from *Park Street* to *School*  
-2. Switch to **Driver** → Go **Online** → **Accept** (or wait for mock fleet auto-assign)  
-3. Mark arrived → Start with OTP shown on Rider screen → Complete  
+1. Save a **Safety contact** (name + phone)  
+2. **Rider** → Book from *Park Street* to *School*  
+3. After assign → **Share live track** (open link / send to family)  
+4. Switch to **Driver** → Online → Accept → Arrived → OTP → trip moves on the map  
+5. Tap **SOS** anytime to alert contact + 112 shortcut
 
 ## Repo location
 

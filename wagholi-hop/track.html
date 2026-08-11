@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f3d2e" />
+    <title>Live track · WagholiHop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body class="track-page">
+    <div id="app" class="track-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">WH</span>
+          <div>
+            <h1>Live track</h1>
+            <p class="tagline">Family safety view · WagholiHop</p>
+          </div>
+        </div>
+      </header>
+
+      <div id="sos-banner" class="sos-banner" hidden>
+        🚨 SOS active — rider requested emergency help
+      </div>
+
+      <section class="card">
+        <div class="section-head">
+          <h3 id="route-title">Loading trip…</h3>
+          <span class="status-dot live" id="live-dot"></span>
+        </div>
+        <div id="live-map" class="live-map" aria-label="Live vehicle map"></div>
+        <p class="muted" id="status-line">Connecting…</p>
+        <div class="fare-row">
+          <div>
+            <span class="muted">Driver</span>
+            <strong id="driver-line">—</strong>
+          </div>
+          <div>
+            <span class="muted">Vehicle</span>
+            <strong id="vehicle-line">—</strong>
+          </div>
+          <div>
+            <span class="muted">Progress</span>
+            <strong id="progress-line">0%</strong>
+          </div>
+        </div>
+        <div class="ride-actions">
+          <a class="primary-btn call-link" href="tel:112">Call 112</a>
+          <a class="ghost-btn" id="open-app" href="./index.html">Open app</a>
+        </div>
+        <p class="hint">
+          Demo link animates from shared trip data. Production would stream real GPS.
+        </p>
+      </section>
+    </div>
+
+    <script type="module">
+      import {
+        decodeSharePayload,
+        readLive,
+        vehiclePosition,
+        rideProgress,
+        renderTrackMap,
+        statusSafetyLabel,
+      } from "./js/safety.js";
+
+      const $ = (s) => document.querySelector(s);
+      let snapshot = null;
+
+      function loadFromHash() {
+        const hash = location.hash.replace(/^#/, "");
+        if (!hash) return readLive();
+        return decodeSharePayload(hash) || readLive();
+      }
+
+      function refresh() {
+        const live = readLive();
+        if (live && snapshot && live.id === snapshot.id) {
+          snapshot = { ...snapshot, ...live };
+        } else if (live && !snapshot) {
+          snapshot = live;
+        } else if (!snapshot) {
+          snapshot = loadFromHash();
+        }
+
+        if (!snapshot) {
+          $("#route-title").textContent = "No live trip";
+          $("#status-line").textContent = "Ask the rider to Share live track from WagholiHop.";
+          return;
+        }
+
+        // Recompute position from timestamps so link stays “live”
+        const pos = vehiclePosition(snapshot);
+        const progress = rideProgress(snapshot);
+        snapshot.vehicleX = pos.x;
+        snapshot.vehicleY = pos.y;
+        snapshot.progress = progress;
+
+        $("#route-title").textContent = `${snapshot.from} → ${snapshot.to}`;
+        $("#status-line").textContent = statusSafetyLabel(snapshot.status);
+        $("#driver-line").textContent = snapshot.driverName || "Assigning";
+        $("#vehicle-line").textContent = snapshot.vehicle || "—";
+        $("#progress-line").textContent = `${Math.round(progress * 100)}%`;
+        $("#sos-banner").hidden = !snapshot.sos;
+        document.body.classList.toggle("sos-mode", !!snapshot.sos);
+        renderTrackMap($("#live-map"), snapshot, { label: "🛺" });
+      }
+
+      snapshot = loadFromHash();
+      refresh();
+      setInterval(refresh, 1000);
+    </script>
+  </body>
+</html>
