@@ -1,11 +1,12 @@
-/** Safety pack: live track simulation, share links, SOS helpers */
+/** Safety pack: live track, share links, SOS + GPS-aware positions */
 
 import { HUBS, placeById, hubById } from "./data.js";
+import { pointAlongLine } from "./geo.js";
 
 export const LIVE_KEY = "wagholihop.live.v1";
 export const EMERGENCY_INDIA = "112";
 
-/** Approximate map points for drop places (percent coords on demo map). */
+/** Percent coords fallback for demo SVG map. */
 export const PLACE_COORDS = {
   "society-gate": { x: 30, y: 40 },
   "dnyanada-school": { x: 60, y: 26 },
@@ -18,11 +19,15 @@ export const PLACE_COORDS = {
 
 export function coordsForHub(hubId) {
   const h = hubById(hubId);
-  return h ? { x: h.x, y: h.y } : { x: 40, y: 50 };
+  if (!h) return { x: 40, y: 50, lat: 18.581, lng: 73.983 };
+  return { x: h.x, y: h.y, lat: h.lat, lng: h.lng };
 }
 
 export function coordsForPlace(placeId) {
-  return PLACE_COORDS[placeId] ?? { x: 55, y: 45 };
+  const p = placeById(placeId);
+  if (p) return { x: p.x, y: p.y, lat: p.lat, lng: p.lng };
+  const fallback = PLACE_COORDS[placeId] ?? { x: 55, y: 45 };
+  return { ...fallback, lat: 18.581, lng: 73.983 };
 }
 
 export function lerp(a, b, t) {
@@ -31,26 +36,18 @@ export function lerp(a, b, t) {
 
 export function pointAlong(from, to, t) {
   const clamped = Math.min(1, Math.max(0, t));
-  // slight curve so path looks like a road, not a ruler
   const mid = {
     x: (from.x + to.x) / 2 + (to.y - from.y) * 0.08,
     y: (from.y + to.y) / 2 - (to.x - from.x) * 0.08,
   };
   if (clamped < 0.5) {
     const u = clamped / 0.5;
-    return {
-      x: lerp(from.x, mid.x, u),
-      y: lerp(from.y, mid.y, u),
-    };
+    return { x: lerp(from.x, mid.x, u), y: lerp(from.y, mid.y, u) };
   }
   const u = (clamped - 0.5) / 0.5;
-  return {
-    x: lerp(mid.x, to.x, u),
-    y: lerp(mid.y, to.y, u),
-  };
+  return { x: lerp(mid.x, to.x, u), y: lerp(mid.y, to.y, u) };
 }
 
-/** Progress 0–1 based on ride phase timestamps. */
 export function rideProgress(ride, now = Date.now()) {
   if (!ride) return 0;
   if (ride.status === "searching") return 0;
@@ -72,13 +69,13 @@ export function rideProgress(ride, now = Date.now()) {
   return 0;
 }
 
+/** Percent position for SVG fallback map */
 export function vehiclePosition(ride, now = Date.now()) {
   const pickup = ride.pickupCoords ?? coordsForHub(ride.hubId);
   const drop = ride.dropCoords ?? { x: 60, y: 30 };
   const t = rideProgress(ride, now);
 
   if (ride.status === "driver_assigned") {
-    // approach from nearby hub offset toward pickup
     const approachFrom = {
       x: Math.max(8, pickup.x - 14),
       y: Math.max(8, pickup.y + 10),
@@ -86,17 +83,63 @@ export function vehiclePosition(ride, now = Date.now()) {
     return pointAlong(approachFrom, pickup, t);
   }
 
-  if (ride.status === "arrived") return pickup;
+  if (ride.status === "arrived") return { x: pickup.x, y: pickup.y };
   if (ride.status === "on_trip" || ride.status === "completed") {
     return pointAlong(pickup, drop, t);
   }
 
-  return pickup;
+  return { x: pickup.x, y: pickup.y };
+}
+
+/** Real lat/lng for Mapbox live tracking */
+export function vehicleLatLng(ride, now = Date.now()) {
+  if (ride?.vehicleGps?.lat != null) {
+    return { lat: ride.vehicleGps.lat, lng: ride.vehicleGps.lng, source: "gps" };
+  }
+
+  const pickup = {
+    lat: ride.pickup?.lat ?? ride.pickupCoords?.lat,
+    lng: ride.pickup?.lng ?? ride.pickupCoords?.lng,
+  };
+  const drop = {
+    lat: ride.drop?.lat ?? ride.dropCoords?.lat,
+    lng: ride.drop?.lng ?? ride.dropCoords?.lng,
+  };
+  const t = rideProgress(ride, now);
+  const coords = ride.routeGeometry?.coordinates;
+
+  if (ride.status === "arrived" && pickup.lat != null) {
+    return { ...pickup, source: "pickup" };
+  }
+
+  if (coords?.length) {
+    if (ride.status === "driver_assigned") {
+      // approach first 15% of route reversed from pickup neighborhood
+      const p = pointAlongLine(coords, Math.min(0.2, t * 0.2));
+      return p ? { ...p, source: "route" } : null;
+    }
+    if (ride.status === "on_trip" || ride.status === "completed") {
+      const p = pointAlongLine(coords, t);
+      return p ? { ...p, source: "route" } : null;
+    }
+  }
+
+  if (pickup.lat != null && drop.lat != null && ride.status === "on_trip") {
+    return {
+      lat: pickup.lat + (drop.lat - pickup.lat) * t,
+      lng: pickup.lng + (drop.lng - pickup.lng) * t,
+      source: "lerp",
+    };
+  }
+
+  if (pickup.lat != null) return { ...pickup, source: "pickup" };
+  return null;
 }
 
 export function buildLiveSnapshot(ride, emergencyContact) {
   if (!ride) return null;
   const pos = vehiclePosition(ride);
+  const gps = vehicleLatLng(ride);
   return {
     id: ride.id,
     from: ride.from,
@@ -112,6 +155,9 @@ export function buildLiveSnapshot(ride, emergencyContact) {
     sosAt: ride.sosAt ?? null,
     pickupCoords: ride.pickupCoords,
     dropCoords: ride.dropCoords,
+    pickup: ride.pickup,
+    drop: ride.drop,
+    routeGeometry: ride.routeGeometry || null,
     assignedAt: ride.assignedAt,
     tripStartedAt: ride.tripStartedAt,
     createdAt: ride.createdAt,
@@ -119,6 +165,10 @@ export function buildLiveSnapshot(ride, emergencyContact) {
     placeId: ride.placeId,
     vehicleX: pos.x,
     vehicleY: pos.y,
+    vehicleLat: gps?.lat ?? null,
+    vehicleLng: gps?.lng ?? null,
+    vehicleGps: ride.vehicleGps || null,
+    etaProvider: ride.etaProvider || "estimate",
     progress: rideProgress(ride),
     emergencyName: emergencyContact?.name || "",
     updatedAt: Date.now(),
@@ -143,7 +193,17 @@ export function readLive() {
 }
 
 export function encodeSharePayload(snapshot) {
-  const json = JSON.stringify(snapshot);
+  // Keep share URL smaller: drop heavy geometry if huge
+  const slim = { ...snapshot };
+  if (slim.routeGeometry?.coordinates?.length > 80) {
+    const c = slim.routeGeometry.coordinates;
+    const step = Math.ceil(c.length / 60);
+    slim.routeGeometry = {
+      type: "LineString",
+      coordinates: c.filter((_, i) => i % step === 0 || i === c.length - 1),
+    };
+  }
+  const json = JSON.stringify(slim);
   return btoa(unescape(encodeURIComponent(json)));
 }
 
@@ -174,6 +234,9 @@ export function shareText(ride, url) {
 
 export function renderTrackMap(container, rideLike, opts = {}) {
   if (!container) return;
+  // If Mapbox already owns this container, skip SVG overwrite
+  if (container.dataset.mapbox === "1") return;
+
   const pickup = rideLike.pickupCoords ?? coordsForHub(rideLike.hubId);
   const drop = rideLike.dropCoords ?? { x: 60, y: 30 };
   const pos =
@@ -186,8 +249,8 @@ export function renderTrackMap(container, rideLike, opts = {}) {
     <svg class="track-svg${sosClass}" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="road" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#1f7a54"/>
-          <stop offset="100%" stop-color="#0f3d2e"/>
+          <stop offset="0%" stop-color="#1f6f9a"/>
+          <stop offset="100%" stop-color="#12263a"/>
         </linearGradient>
       </defs>
       <path d="M ${pickup.x} ${pickup.y} Q ${(pickup.x + drop.x) / 2 + 4} ${(pickup.y + drop.y) / 2 - 6} ${drop.x} ${drop.y}"
@@ -207,7 +270,7 @@ export function statusSafetyLabel(status) {
       searching: "Matching a verified hub driver…",
       driver_assigned: "Live track on — driver en route to you",
       arrived: "Driver at pickup — verify vehicle & OTP",
-      on_trip: "Live tracking active for your safety",
+      on_trip: "Live GPS tracking active for your safety",
       completed: "Trip ended safely",
       cancelled: "Trip cancelled",
     }[status] || status

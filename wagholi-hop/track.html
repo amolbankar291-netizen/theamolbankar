@@ -12,6 +12,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./css/styles.css" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
   </head>
   <body class="track-page">
     <div id="app" class="track-shell">
@@ -35,7 +37,7 @@
           <h3 id="route-title">Loading trip…</h3>
           <span class="status-dot live" id="live-dot"></span>
         </div>
-        <div id="live-map" class="live-map" aria-label="Live vehicle map"></div>
+        <div id="live-map" class="live-map map-host" aria-label="Live vehicle map"></div>
         <p class="muted" id="status-line">Connecting…</p>
         <div class="fare-row">
           <div>
@@ -55,7 +57,7 @@
           <a class="primary-btn call-link" href="tel:112">Call 112</a>
           <a class="ghost-btn" id="open-app" href="./index.html">Open app</a>
         </div>
-        <p class="hint">Demo tracking animates from shared trip data.</p>
+        <p class="hint" id="track-hint">Uses Mapbox when a token is saved in the main app.</p>
       </section>
     </div>
 
@@ -80,18 +82,57 @@
         decodeSharePayload,
         readLive,
         vehiclePosition,
+        vehicleLatLng,
         rideProgress,
         renderTrackMap,
         statusSafetyLabel,
       } from "./js/safety.js";
+      import { hasMapbox } from "./js/config.js";
+      import { HopMap } from "./js/maps.js";
 
       const $ = (s) => document.querySelector(s);
       let snapshot = null;
+      let hopMap = null;
 
       function loadFromHash() {
         const hash = location.hash.replace(/^#/, "");
         if (!hash) return readLive();
         return decodeSharePayload(hash) || readLive();
+      }
+
+      function paint() {
+        if (!snapshot) return;
+        if (hasMapbox()) {
+          const host = $("#live-map");
+          if (!hopMap) {
+            host.innerHTML = "";
+            host.dataset.mapbox = "1";
+            hopMap = new HopMap(host);
+            hopMap.init();
+          }
+          const pickup = snapshot.pickup || {
+            lat: snapshot.pickupCoords?.lat,
+            lng: snapshot.pickupCoords?.lng,
+          };
+          const drop = snapshot.drop || {
+            lat: snapshot.dropCoords?.lat,
+            lng: snapshot.dropCoords?.lng,
+          };
+          const vehicle = vehicleLatLng(snapshot) ||
+            (snapshot.vehicleLat != null
+              ? { lat: snapshot.vehicleLat, lng: snapshot.vehicleLng }
+              : null);
+
+          if (pickup?.lat != null) hopMap.setMarker("pickup", pickup, { label: "P", className: "mbx-pickup" });
+          if (drop?.lat != null) hopMap.setMarker("drop", drop, { label: "D", className: "mbx-drop" });
+          if (vehicle) hopMap.setMarker("vehicle", vehicle, { label: "🛺", className: "mbx-vehicle" });
+          hopMap.setRoute(snapshot.routeGeometry || null);
+          hopMap.fitPoints([pickup, drop, vehicle].filter((p) => p?.lat != null));
+          $("#track-hint").textContent = "Mapbox live track";
+        } else {
+          renderTrackMap($("#live-map"), snapshot, { label: "🛺" });
+          $("#track-hint").textContent = "Open main app, save Mapbox token, then share again for road map.";
+        }
       }
 
       function refresh() {
@@ -115,6 +156,11 @@
         snapshot.vehicleX = pos.x;
         snapshot.vehicleY = pos.y;
         snapshot.progress = progress;
+        const gps = vehicleLatLng(snapshot);
+        if (gps) {
+          snapshot.vehicleLat = gps.lat;
+          snapshot.vehicleLng = gps.lng;
+        }
 
         $("#route-title").textContent = `${snapshot.from} → ${snapshot.to}`;
         $("#status-line").textContent = statusSafetyLabel(snapshot.status);
@@ -123,7 +169,7 @@
         $("#progress-line").textContent = `${Math.round(progress * 100)}%`;
         $("#sos-banner").hidden = !snapshot.sos;
         document.body.classList.toggle("sos-mode", !!snapshot.sos);
-        renderTrackMap($("#live-map"), snapshot, { label: "🛺" });
+        paint();
       }
 
       snapshot = loadFromHash();

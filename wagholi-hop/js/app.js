@@ -6,6 +6,8 @@ import {
   distanceFor,
   hubById,
   placeById,
+  hubLatLng,
+  placeLatLng,
 } from "./data.js";
 import { loadState, saveState, uid, otp4 } from "./store.js";
 import {
@@ -19,12 +21,22 @@ import {
   statusSafetyLabel,
   EMERGENCY_INDIA,
   vehiclePosition,
+  vehicleLatLng,
 } from "./safety.js";
+import { getMapboxToken, setMapboxToken, hasMapbox, SERVICE_RADIUS_KM } from "./config.js";
+import { getCurrentPosition, watchPosition, clearWatch, nearestPoint, isNearWagholi } from "./geo.js";
+import { HopMap, fetchDrivingRoute } from "./maps.js";
 
 const state = loadState();
 let toastTimer;
 let etaTimer;
 let trackTimer;
+let quoteSeq = 0;
+let lastQuote = null;
+let gpsPickup = null;
+let bookingMap = null;
+let rideMap = null;
+let driverWatchId = null;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -47,10 +59,14 @@ function syncLivePublish() {
     publishLive(null);
     return;
   }
-  // refresh vehicle coords on ride object for track page
   const pos = vehiclePosition(ride);
   ride.vehicleX = pos.x;
   ride.vehicleY = pos.y;
+  const gps = vehicleLatLng(ride);
+  if (gps) {
+    ride.vehicleLat = gps.lat;
+    ride.vehicleLng = gps.lng;
+  }
   publishLive(buildLiveSnapshot(ride, state.emergencyContact));
 }
 
@@ -61,6 +77,12 @@ function setMode(mode) {
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === `view-${mode}`);
   });
+  if (mode === "rider") {
+    setTimeout(() => {
+      bookingMap?.resize();
+      rideMap?.resize();
+    }, 80);
+  }
 }
 
 function fillSelects() {
@@ -84,17 +106,168 @@ function fillSelects() {
 
   $("#emergency-name").value = state.emergencyContact.name || "";
   $("#emergency-phone").value = state.emergencyContact.phone || "";
+  $("#mapbox-token").value = getMapboxToken();
 }
 
-function quote() {
+function setMapStatus(text) {
+  const el = $("#map-status");
+  if (el) el.textContent = text;
+}
+
+function ensureBookingMap() {
+  if (!hasMapbox()) return null;
+  if (!bookingMap) bookingMap = new HopMap("#booking-map");
+  bookingMap.init();
+  $("#booking-map").dataset.mapbox = "1";
+  return bookingMap;
+}
+
+function ensureRideMap() {
+  if (!hasMapbox()) return null;
+  const host = $("#live-map-rider");
+  if (!host) return null;
+  if (!rideMap) rideMap = new HopMap(host);
+  // If SVG fallback previously painted, clear once for Mapbox
+  if (host.dataset.mapbox !== "1") {
+    host.innerHTML = "";
+    host.dataset.mapbox = "1";
+  }
+  rideMap.init();
+  return rideMap;
+}
+
+async function refreshQuote() {
+  const seq = ++quoteSeq;
   const hub = hubById($("#pickup-hub").value);
   const place = placeById($("#drop-place").value);
   const fare = fareFor(hub.zone, place.zone);
-  const km = distanceFor(hub.zone, place.zone);
+
+  const pickup = gpsPickup || hubLatLng(hub);
+  const drop = placeLatLng(place);
+
+  let km = distanceFor(hub.zone, place.zone);
+  let etaMins = hub.etaMins;
+  let routeGeometry = null;
+  let etaProvider = "zone-estimate";
+
   $("#fare-display").textContent = `₹${fare}`;
   $("#distance-display").textContent = `${km.toFixed(1)} km`;
-  $("#promise-eta").textContent = `~${hub.etaMins}`;
-  return { hub, place, fare, km };
+  $("#sla-display").textContent = `~${etaMins} min`;
+  $("#promise-eta").textContent = `~${etaMins}`;
+  $("#eta-provider-badge").textContent = gpsPickup ? "GPS pickup" : "Hub pickup";
+
+  const gpsLabel = $("#gps-pickup-label");
+  if (gpsPickup) {
+    gpsLabel.hidden = false;
+    gpsLabel.textContent = `GPS pickup active (${gpsPickup.lat.toFixed(5)}, ${gpsPickup.lng.toFixed(5)}) · nearest hub ${hub.name}`;
+  } else {
+    gpsLabel.hidden = true;
+  }
+
+  if (hasMapbox()) {
+    setMapStatus("Fetching Mapbox road ETA…");
+    try {
+      const route = await fetchDrivingRoute(pickup, drop);
+      if (seq !== quoteSeq) return lastQuote;
+      km = route.distanceKm;
+      etaMins = route.durationMin;
+      routeGeometry = route.geometry;
+      etaProvider = "mapbox";
+
+      $("#distance-display").textContent = `${km.toFixed(2)} km`;
+      $("#sla-display").textContent = `${etaMins} min`;
+      $("#promise-eta").textContent = `~${etaMins}`;
+      $("#eta-provider-badge").textContent = "Mapbox ETA";
+      setMapStatus(`Mapbox driving · ${km.toFixed(2)} km · ${etaMins} min`);
+
+      const map = ensureBookingMap();
+      if (map) {
+        map.setMarker("pickup", pickup, { label: "P", className: "mbx-pickup" });
+        map.setMarker("drop", drop, { label: "D", className: "mbx-drop" });
+        map.setRoute(routeGeometry);
+        map.fitPoints([pickup, drop]);
+      }
+    } catch (err) {
+      if (seq !== quoteSeq) return lastQuote;
+      console.warn(err);
+      setMapStatus(`Mapbox ETA unavailable — using zone estimate. ${err.message || ""}`);
+      $("#eta-provider-badge").textContent = "Estimate";
+      const map = ensureBookingMap();
+      if (map) {
+        map.setMarker("pickup", pickup, { label: "P", className: "mbx-pickup" });
+        map.setMarker("drop", drop, { label: "D", className: "mbx-drop" });
+        map.setRoute(null);
+        map.fitPoints([pickup, drop]);
+      }
+    }
+  } else {
+    setMapStatus("Add Mapbox token below for live map + real road ETA. Zone estimate shown now.");
+    $("#eta-provider-badge").textContent = "Estimate";
+  }
+
+  lastQuote = {
+    hub,
+    place,
+    fare,
+    km,
+    etaMins,
+    pickup,
+    drop,
+    routeGeometry,
+    etaProvider,
+    fromGps: !!gpsPickup,
+  };
+  return lastQuote;
+}
+
+function quote() {
+  return refreshQuote();
+}
+
+async function useMyGps() {
+  try {
+    setMapStatus("Getting GPS…");
+    toast("Requesting location permission…");
+    const pos = await getCurrentPosition();
+    if (!isNearWagholi(pos, 12)) {
+      toast("GPS looks far from Wagholi — still using it for demo");
+    }
+    gpsPickup = pos;
+    const near = nearestPoint(
+      pos,
+      HUBS.map((h) => ({ id: h.id, lat: h.lat, lng: h.lng, name: h.name }))
+    );
+    if (near) $("#pickup-hub").value = near.id;
+    await refreshQuote();
+    toast(`GPS locked · ±${Math.round(pos.accuracy || 0)}m`);
+  } catch (err) {
+    console.warn(err);
+    toast(err.message || "Could not get GPS");
+    setMapStatus("GPS denied or unavailable. Allow location and try again.");
+  }
+}
+
+function saveToken() {
+  const token = setMapboxToken($("#mapbox-token").value);
+  if (!token) {
+    toast("Paste a Mapbox public token (pk.…)");
+    return;
+  }
+  if (!window.mapboxgl) {
+    toast("Mapbox SDK not loaded — refresh the page");
+    return;
+  }
+  bookingMap?.destroy();
+  bookingMap = null;
+  rideMap?.destroy();
+  rideMap = null;
+  const host = $("#booking-map");
+  if (host) {
+    host.dataset.mapbox = "";
+    host.innerHTML = "";
+  }
+  toast("Mapbox token saved");
+  refreshQuote();
 }
 
 function renderSavedPlaces() {
@@ -120,10 +293,39 @@ function renderHistory() {
     .map(
       (t) => `<li class="list-item">
         <strong>${t.from} → ${t.to}</strong>
-        <small>₹${t.fare} · ${t.km} km · ${t.status}${t.sos ? " · SOS" : ""} · ${new Date(t.at).toLocaleString()}</small>
+        <small>₹${t.fare} · ${Number(t.km).toFixed(2)} km · ${t.status}${t.sos ? " · SOS" : ""} · ${t.etaProvider || ""} · ${new Date(t.at).toLocaleString()}</small>
       </li>`
     )
     .join("");
+}
+
+function paintRideMap(ride) {
+  if (!hasMapbox()) {
+    renderTrackMap($("#live-map-rider"), ride, { label: "🛺" });
+    return;
+  }
+  const map = ensureRideMap();
+  if (!map) {
+    renderTrackMap($("#live-map-rider"), ride, { label: "🛺" });
+    return;
+  }
+  const pickup = ride.pickup || {
+    lat: ride.pickupCoords?.lat,
+    lng: ride.pickupCoords?.lng,
+  };
+  const drop = ride.drop || {
+    lat: ride.dropCoords?.lat,
+    lng: ride.dropCoords?.lng,
+  };
+  const vehicle = vehicleLatLng(ride);
+
+  if (pickup?.lat != null) map.setMarker("pickup", pickup, { label: "P", className: "mbx-pickup" });
+  if (drop?.lat != null) map.setMarker("drop", drop, { label: "D", className: "mbx-drop" });
+  if (vehicle) map.setMarker("vehicle", vehicle, { label: "🛺", className: "mbx-vehicle" });
+  map.setRoute(ride.routeGeometry || null);
+
+  const pts = [pickup, drop, vehicle].filter((p) => p?.lat != null);
+  map.fitPoints(pts);
 }
 
 function renderActiveRide() {
@@ -148,22 +350,25 @@ function renderActiveRide() {
     searching: "Finding nearest hub vehicle…",
     driver_assigned: `${ride.driverName} is arriving`,
     arrived: "Driver arrived — share OTP",
-    on_trip: "Trip in progress · live tracking on",
+    on_trip: "Trip in progress · live GPS tracking on",
     completed: "Completed",
     cancelled: "Cancelled",
   }[ride.status];
+
+  const etaNote = ride.etaProvider === "mapbox" ? "Mapbox ETA" : "Est. ETA";
 
   $("#active-ride").innerHTML = `
     <div class="list-item">
       <strong>${ride.from} → ${ride.to}</strong>
       <small>${statusLabel}</small>
-      <small>Fare ₹${ride.fare} · OTP <strong>${ride.otp}</strong> · ETA ${ride.etaMins} min</small>
+      <small>Fare ₹${ride.fare} · OTP <strong>${ride.otp}</strong> · ${etaNote} ${ride.etaMins} min · ${Number(ride.km).toFixed(2)} km</small>
       ${ride.vehicle ? `<small>Vehicle: ${ride.vehicle}</small>` : ""}
-      ${ride.sos ? `<small>🚨 SOS active since ${new Date(ride.sosAt).toLocaleTimeString()}</small>` : ""}
+      ${ride.vehicleGps ? `<small>GPS: ${ride.vehicleGps.lat.toFixed(5)}, ${ride.vehicleGps.lng.toFixed(5)}</small>` : ""}
+      ${ride.sos ? `<small>SOS active since ${new Date(ride.sosAt).toLocaleTimeString()}</small>` : ""}
     </div>
   `;
 
-  renderTrackMap($("#live-map-rider"), ride, { label: "🛺" });
+  paintRideMap(ride);
   startTrackLoop();
 }
 
@@ -175,9 +380,29 @@ function startTrackLoop() {
       return;
     }
     syncLivePublish();
-    renderTrackMap($("#live-map-rider"), state.activeRide, { label: "🛺" });
+    paintRideMap(state.activeRide);
     $("#safety-line").textContent = statusSafetyLabel(state.activeRide.status);
-  }, 1000);
+  }, 1500);
+}
+
+function startDriverGps() {
+  clearWatch(driverWatchId);
+  driverWatchId = watchPosition(
+    (pos) => {
+      state.driver.lastGps = pos;
+      const ride = state.activeRide;
+      if (ride && state.driver.activeTripId === ride.id) {
+        ride.vehicleGps = pos;
+        persist();
+      }
+    },
+    (err) => console.warn("Driver GPS", err)
+  );
+}
+
+function stopDriverGps() {
+  clearWatch(driverWatchId);
+  driverWatchId = null;
 }
 
 function simulateAssignment(rideId) {
@@ -194,7 +419,8 @@ function simulateAssignment(rideId) {
     ride.assignedAt = Date.now();
     ride.driverName = driverName;
     ride.vehicle = Math.random() > 0.45 ? "E-rickshaw · MH12 ER" : "Auto · MH12 AB";
-    ride.etaMins = Math.max(3, (hubById(ride.hubId)?.etaMins ?? 6) - 1);
+    if (!ride.etaMins) ride.etaMins = Math.max(3, (hubById(ride.hubId)?.etaMins ?? 6) - 1);
+    if (onlineDriver && state.driver.lastGps) ride.vehicleGps = state.driver.lastGps;
     persist();
     renderActiveRide();
     toast(`${driverName} accepted · live track started`);
@@ -204,6 +430,7 @@ function simulateAssignment(rideId) {
       state.queue = state.queue.filter((q) => q.id !== ride.id);
       persist();
       renderDriver();
+      startDriverGps();
     } else {
       setTimeout(() => {
         if (state.activeRide?.id === rideId && state.activeRide.status === "driver_assigned") {
@@ -236,35 +463,45 @@ function startEtaCountdown() {
   }, 15000);
 }
 
-function bookRide() {
+async function bookRide() {
   if (state.activeRide && !["completed", "cancelled"].includes(state.activeRide.status)) {
     toast("Finish or cancel your active ride first");
     return;
   }
 
-  const { hub, place, fare, km } = quote();
-  if (km > 2.5) {
-    toast("Out of service area (>2.5 km). Use Ola/Uber.");
+  const q = lastQuote || (await refreshQuote());
+  if (q.km > SERVICE_RADIUS_KM) {
+    toast(`Out of service area (${q.km.toFixed(2)} km > ${SERVICE_RADIUS_KM} km).`);
     return;
   }
+
+  const hub = q.hub;
+  const place = q.place;
+  const pickupPct = coordsForHub(hub.id);
+  const dropPct = coordsForPlace(place.id);
 
   const ride = {
     id: uid("ride"),
     hubId: hub.id,
     placeId: place.id,
-    from: hub.name,
+    from: q.fromGps ? `GPS near ${hub.name}` : hub.name,
     to: place.name,
     fromZone: hub.zone,
     toZone: place.zone,
-    pickupCoords: coordsForHub(hub.id),
-    dropCoords: coordsForPlace(place.id),
-    fare,
-    km,
+    pickup: q.pickup,
+    drop: q.drop,
+    pickupCoords: { ...pickupPct, lat: q.pickup.lat, lng: q.pickup.lng },
+    dropCoords: { ...dropPct, lat: q.drop.lat, lng: q.drop.lng },
+    routeGeometry: q.routeGeometry,
+    etaProvider: q.etaProvider,
+    fare: q.fare,
+    km: q.km,
     otp: otp4(),
     status: "searching",
-    etaMins: hub.etaMins,
+    etaMins: q.etaMins,
     driverName: null,
     vehicle: null,
+    vehicleGps: null,
     sos: false,
     sosAt: null,
     assignedAt: null,
@@ -284,7 +521,11 @@ function bookRide() {
   persist();
   renderActiveRide();
   renderDriver();
-  toast("Searching nearest hub vehicle…");
+  toast(
+    q.etaProvider === "mapbox"
+      ? `Searching… Mapbox ETA ${q.etaMins} min`
+      : "Searching nearest hub vehicle…"
+  );
   simulateAssignment(ride.id);
 }
 
@@ -299,6 +540,7 @@ function cancelRide() {
     km: ride.km,
     status: "cancelled",
     sos: !!ride.sos,
+    etaProvider: ride.etaProvider,
     at: Date.now(),
   });
   state.queue = state.queue.filter((q) => q.id !== ride.id);
@@ -369,6 +611,9 @@ async function triggerSos() {
     `🚨 WagholiHop SOS\n` +
     `Rider needs help on ${ride.from} → ${ride.to}\n` +
     `Driver: ${ride.driverName || "unknown"} · ${ride.vehicle || "—"}\n` +
+    (ride.vehicleGps
+      ? `GPS: ${ride.vehicleGps.lat}, ${ride.vehicleGps.lng}\n`
+      : "") +
     `Live track: ${url}\n` +
     (contact.phone ? `Also alert: ${contact.name || "contact"} ${contact.phone}\n` : "") +
     `Call ${EMERGENCY_INDIA} if needed.`;
@@ -376,12 +621,10 @@ async function triggerSos() {
   await copyText(alertText);
 
   if (contact.phone) {
-    // Prefer WhatsApp if available; otherwise sms link
     const wa = `https://wa.me/91${contact.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(alertText)}`;
     window.open(wa, "_blank");
   }
 
-  // Open emergency dialer
   window.location.href = `tel:${EMERGENCY_INDIA}`;
   toast("SOS alert prepared — live link copied");
 }
@@ -399,13 +642,11 @@ function saveEmergency() {
   );
 }
 
-/* ---------------- Driver ---------------- */
-
 function renderDriver() {
   const online = state.driver.online;
   $("#driver-online").checked = online;
   $("#driver-online-label").textContent = online
-    ? `Online at ${hubById(state.driver.hubId)?.name ?? "hub"}`
+    ? `Online at ${hubById(state.driver.hubId)?.name ?? "hub"} · GPS ${state.driver.lastGps ? "on" : "waiting"}`
     : "You're offline";
   $("#driver-earnings").textContent = `₹${state.driver.earnings}`;
   $("#driver-trips").textContent = String(state.driver.trips);
@@ -458,9 +699,9 @@ function renderDriver() {
   $("#driver-active").innerHTML = `
     <div class="list-item">
       <strong>${ride.from} → ${ride.to}</strong>
-      <small>Status: ${ride.status.replaceAll("_", " ")}${ride.sos ? " · 🚨 SOS" : ""}</small>
+      <small>Status: ${ride.status.replaceAll("_", " ")}${ride.sos ? " · SOS" : ""}</small>
       <small>Collect OTP from rider to start · Fare ₹${ride.fare}</small>
-      <small>Rider is live-tracked for family safety</small>
+      <small>${ride.etaProvider === "mapbox" ? "Mapbox route active" : "Estimated route"} · your GPS broadcasts while online</small>
     </div>
   `;
 
@@ -490,13 +731,14 @@ function acceptRequest(id) {
   ride.assignedAt = Date.now();
   ride.driverName = "You (demo driver)";
   ride.vehicle = "E-rickshaw · DEMO";
-  ride.etaMins = hubById(state.driver.hubId)?.etaMins ?? 5;
+  if (state.driver.lastGps) ride.vehicleGps = state.driver.lastGps;
   state.driver.activeTripId = ride.id;
   state.queue = state.queue.filter((q) => q.id !== id);
   persist();
   renderActiveRide();
   renderDriver();
-  toast("Trip accepted — you are now live-tracked");
+  startDriverGps();
+  toast("Trip accepted — GPS live tracking on");
   startEtaCountdown();
 }
 
@@ -528,7 +770,7 @@ function startWithOtp(entered) {
   persist();
   renderActiveRide();
   renderDriver();
-  toast("Trip started · live tracking for family");
+  toast("Trip started · live GPS for family");
   return true;
 }
 
@@ -543,6 +785,7 @@ function completeTrip() {
     km: ride.km,
     status: "completed",
     sos: !!ride.sos,
+    etaProvider: ride.etaProvider,
     at: Date.now(),
   });
   state.driver.earnings += ride.fare;
@@ -556,8 +799,6 @@ function completeTrip() {
   toast(`Trip done · ₹${ride.fare} earned`);
 }
 
-/* ---------------- Hubs ---------------- */
-
 function renderHubs() {
   const map = $("#hub-map");
   map.innerHTML = HUBS.map(
@@ -568,16 +809,16 @@ function renderHubs() {
   $("#hub-list").innerHTML = HUBS.map(
     (h) => `<li class="list-item">
       <strong>${h.name}</strong>
-      <small>Zone ${h.zone} · ${h.vehicles} vehicles · typical ETA ${h.etaMins} min</small>
+      <small>Zone ${h.zone} · ${h.lat.toFixed(4)}, ${h.lng.toFixed(4)} · ETA ~${h.etaMins} min</small>
     </li>`
   ).join("");
 
   $("#fare-zones").innerHTML = `
-    <li class="list-item"><strong>Same zone (A→A / B→B / C→C)</strong><small>₹30 · ~1 km</small></li>
-    <li class="list-item"><strong>Adjacent A↔B</strong><small>₹45 · ~1.6 km</small></li>
-    <li class="list-item"><strong>B↔C</strong><small>₹50 · ~1.8 km</small></li>
-    <li class="list-item"><strong>A↔C</strong><small>₹55 · ~2.1 km</small></li>
-    <li class="list-item"><strong>Hard cap</strong><small>2.5 km / ₹70 — outside WagholiHop area</small></li>
+    <li class="list-item"><strong>Same zone</strong><small>₹30 · Mapbox distance when token set</small></li>
+    <li class="list-item"><strong>Adjacent A↔B</strong><small>₹45 fixed fare</small></li>
+    <li class="list-item"><strong>B↔C</strong><small>₹50 fixed fare</small></li>
+    <li class="list-item"><strong>A↔C</strong><small>₹55 fixed fare</small></li>
+    <li class="list-item"><strong>Hard cap</strong><small>${SERVICE_RADIUS_KM} km — outside WagholiHop area</small></li>
   `;
 }
 
@@ -601,9 +842,15 @@ function bind() {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
   });
 
-  $("#pickup-hub").addEventListener("change", quote);
-  $("#drop-place").addEventListener("change", quote);
-  $("#book-btn").addEventListener("click", bookRide);
+  $("#pickup-hub").addEventListener("change", () => {
+    gpsPickup = null;
+    refreshQuote();
+  });
+  $("#drop-place").addEventListener("change", () => refreshQuote());
+  $("#book-btn").addEventListener("click", () => bookRide());
+  $("#use-gps-btn").addEventListener("click", () => useMyGps());
+  $("#refresh-eta-btn").addEventListener("click", () => refreshQuote());
+  $("#save-token-btn").addEventListener("click", () => saveToken());
   $("#cancel-ride-btn").addEventListener("click", cancelRide);
   $("#share-ride-btn").addEventListener("click", shareRide);
   $("#share-live-btn").addEventListener("click", shareLiveTrack);
@@ -622,14 +869,20 @@ function bind() {
     const btn = e.target.closest("[data-place]");
     if (!btn) return;
     $("#drop-place").value = btn.dataset.place;
-    quote();
+    refreshQuote();
   });
 
   $("#driver-online").addEventListener("change", (e) => {
     state.driver.online = e.target.checked;
     persist();
+    if (state.driver.online) {
+      startDriverGps();
+      toast("Online — GPS broadcasting");
+    } else {
+      stopDriverGps();
+      toast("Went offline");
+    }
     renderDriver();
-    toast(state.driver.online ? "You're online at hub" : "Went offline");
   });
 
   $("#driver-hub").addEventListener("change", (e) => {
@@ -671,13 +924,15 @@ function bind() {
 
 function init() {
   fillSelects();
-  quote();
   renderSavedPlaces();
   renderHistory();
   renderActiveRide();
   renderDriver();
   renderHubs();
   bind();
+  refreshQuote();
+
+  if (state.driver.online) startDriverGps();
 
   if (state.activeRide?.status === "searching") {
     simulateAssignment(state.activeRide.id);

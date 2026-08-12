@@ -34,6 +34,22 @@ After Pages is enabled:
 - Hub-parked vehicles (not city-wide cab search)  
 - Rider OTP to start trip  
 
+## Production step 1 — Real GPS + Mapbox ETA
+
+1. Create a free token: https://account.mapbox.com/access-tokens/
+2. Open the app → expand **Production maps setup (Mapbox)**
+3. Paste `pk.…` token → **Save token & enable maps**
+4. Tap **Use my GPS** (allow location)
+5. Choose drop → app fetches **Mapbox Directions** road distance + ETA
+6. Book → active ride / family `track.html` use Mapbox route + live marker  
+   (Driver mode online broadcasts real GPS via `watchPosition`)
+
+Fallback without token: zone fares + SVG demo map still work.
+
+Optional: `http://localhost:5177/?mapbox=pk.YOUR_TOKEN`
+
+Google Maps can be added next as an alternate provider behind the same `maps.js` interface.
+
 ## Safety pack
 
 - **Live map** on the active ride (vehicle moves pickup → drop)
