@@ -136,7 +136,7 @@
   <div class="wrap">
     <header>
       <h1>Free Calorie Calculator</h1>
-      <p>मोफत कॅलरी कॅल्क्युलेटर · 0.5kg वजन कमी</p>
+      <p>मोफत कॅलरी कॅल्क्युलेटर · उंची, वजन, वय, लिंग</p>
     </header>
 
     <form class="card" id="calc-form">
@@ -171,11 +171,11 @@
       <button type="submit">Calculate / गणना करा</button>
 
       <div class="result" id="result" aria-live="polite">
-        <div class="en">Your Daily Calories for 0.5kg Weight Loss:</div>
+        <div class="en">Your Daily Calories (from height, weight, age &amp; gender):</div>
         <div class="kcal"><span id="kcal">0</span> Calories</div>
-        <p class="mr">मराठी: वजन 0.5kg कमी करण्यासाठी रोज <span id="kcal-mr">0</span> Calories खा</p>
+        <p class="mr">मराठी: तुमच्या उंची, वजन, वय आणि लिंगानुसार रोज <span id="kcal-mr">0</span> Calories लागतात</p>
         <div class="meta">
-          BMR: <span id="bmr">0</span> · Maintenance: <span id="tdee">0</span>
+          BMR (resting): <span id="bmr">0</span> Calories
         </div>
       </div>
     </form>
@@ -201,14 +201,11 @@
       var activity = parseFloat(document.getElementById("activity").value);
 
       var bmr = mifflinStJeor(weight, height, age, gender);
-      var tdee = bmr * activity;
-      // 0.5 kg/week ≈ 3850 kcal/week ≈ 550 kcal/day
-      var target = Math.max(1200, Math.round(tdee - 550));
+      var daily = Math.round(bmr * activity);
 
-      document.getElementById("kcal").textContent = target;
-      document.getElementById("kcal-mr").textContent = target;
+      document.getElementById("kcal").textContent = daily;
+      document.getElementById("kcal-mr").textContent = daily;
       document.getElementById("bmr").textContent = Math.round(bmr);
-      document.getElementById("tdee").textContent = Math.round(tdee);
       document.getElementById("result").classList.add("show");
     });
   </script>
