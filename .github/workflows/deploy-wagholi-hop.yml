@@ -6,6 +6,7 @@ on:
     paths:
       - "wagholi-hop/**"
       - "calorie-calculator.html"
+      - "assets/calorie-bg.jpg"
       - ".github/workflows/deploy-wagholi-hop.yml"
   workflow_dispatch:
 
@@ -29,7 +30,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add calorie calculator to site
-        run: cp calorie-calculator.html wagholi-hop/calorie-calculator.html
+        run: |
+          mkdir -p wagholi-hop/assets
+          cp calorie-calculator.html wagholi-hop/calorie-calculator.html
+          cp assets/calorie-bg.jpg wagholi-hop/assets/calorie-bg.jpg
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

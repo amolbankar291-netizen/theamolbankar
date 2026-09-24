@@ -6,127 +6,167 @@
   <title>Free Calorie Calculator | The Amol Bankar</title>
   <style>
     :root {
-      --green: #1b8a4a;
-      --green-dark: #136b38;
-      --green-soft: #e8f7ee;
-      --text: #143322;
-      --muted: #4d6b58;
-      --card: #ffffff;
-      --bg: #f3faf6;
+      --cyan: #2ee6ff;
+      --pink: #ff4fd8;
+      --text: #f6fbff;
+      --muted: #c9d6ea;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-      background: linear-gradient(180deg, #e8f7ee 0%, #f3faf6 40%, #fff 100%);
-      color: var(--text);
       min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(90deg, rgba(4, 18, 48, 0.78) 0%, rgba(28, 4, 36, 0.72) 100%),
+        url("assets/calorie-bg.jpg") center / cover no-repeat fixed,
+        url("https://raw.githubusercontent.com/amolbankar291-netizen/theamolbankar/main/assets/calorie-bg.jpg") center / cover no-repeat fixed,
+        #07101f;
     }
 
     .wrap {
-      max-width: 430px;
+      max-width: 440px;
       margin: 0 auto;
-      padding: 20px 16px 32px;
+      padding: 22px 14px 36px;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 18px;
-    }
+    header { text-align: center; margin-bottom: 16px; }
 
     header h1 {
-      margin: 0 0 6px;
-      font-size: 1.45rem;
-      color: var(--green-dark);
+      margin: 0;
+      font-size: 1.7rem;
+      letter-spacing: 0.3px;
+      background: linear-gradient(90deg, var(--cyan), #fff, var(--pink));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
-    header p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 0.92rem; }
 
     .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 18px 16px;
-      box-shadow: 0 8px 24px rgba(19, 107, 56, 0.08);
+      background: rgba(8, 14, 28, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      padding: 16px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
     }
 
     label {
       display: block;
-      font-weight: 600;
-      font-size: 0.88rem;
-      margin: 12px 0 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin: 11px 0 6px;
+      color: #e8f4ff;
     }
 
     input, select {
       width: 100%;
-      padding: 12px 12px;
-      border: 1.5px solid #cfe8d7;
-      border-radius: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(46, 230, 255, 0.35);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
       font-size: 1rem;
-      background: #fff;
-      color: var(--text);
     }
+
+    select option { color: #111; }
 
     input:focus, select:focus {
       outline: none;
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(27, 138, 74, 0.15);
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(255, 79, 216, 0.2);
     }
 
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     button {
       width: 100%;
-      margin-top: 18px;
+      margin-top: 16px;
       border: 0;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 14px;
       font-size: 1.05rem;
-      font-weight: 700;
-      color: #fff;
-      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      font-weight: 800;
+      color: #061018;
+      background: linear-gradient(90deg, var(--cyan), #7cf0ff 40%, var(--pink));
       cursor: pointer;
     }
 
-    button:active { transform: scale(0.99); }
-
-    .result {
-      display: none;
-      margin-top: 16px;
-      background: var(--green-soft);
-      border: 1px solid #b7e2c6;
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-    }
-
+    .result { display: none; margin-top: 14px; }
     .result.show { display: block; }
 
-    .kcal {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--green-dark);
-      line-height: 1.1;
-      margin: 6px 0 10px;
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
-    .en { font-size: 0.98rem; margin: 0 0 8px; }
-    .mr { font-size: 0.98rem; margin: 0; color: var(--green-dark); font-weight: 600; }
-    .meta { font-size: 0.82rem; color: var(--muted); margin-top: 10px; }
+    .stat {
+      text-align: center;
+      padding: 10px 6px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .stat b { display: block; font-size: 1.25rem; color: var(--cyan); }
+    .stat span { font-size: 0.72rem; color: var(--muted); }
+
+    .bmi-tag {
+      display: inline-block;
+      margin: 0 0 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(46, 230, 255, 0.16);
+      color: var(--cyan);
+    }
+
+    .goal-box {
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, rgba(46, 230, 255, 0.16), rgba(255, 79, 216, 0.16));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .goal-box h2 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .goal-box p { margin: 0; font-size: 0.86rem; color: #eaf4ff; line-height: 1.45; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    th, td { padding: 8px 6px; text-align: left; }
+    th { background: rgba(255, 79, 216, 0.22); color: #fff; }
+    td { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    tr:nth-child(even) td { background: rgba(255, 255, 255, 0.04); }
+
+    .mr {
+      margin: 10px 0 0;
+      color: #ffe3f8;
+      font-weight: 600;
+      font-size: 0.86rem;
+    }
 
     .disclaimer {
-      margin-top: 14px;
-      font-size: 0.78rem;
-      color: #6a7d70;
+      margin-top: 12px;
+      font-size: 0.72rem;
+      color: #c5d0e0;
       text-align: center;
       line-height: 1.45;
     }
@@ -136,7 +176,7 @@
   <div class="wrap">
     <header>
       <h1>Free Calorie Calculator</h1>
-      <p>मोफत कॅलरी कॅल्क्युलेटर · उंची, वजन, वय, लिंग</p>
+      <p>BMI · Goal Weight · Daily Calories · Protein</p>
     </header>
 
     <form class="card" id="calc-form">
@@ -144,7 +184,7 @@
       <input id="weight" type="number" min="25" max="250" step="0.1" placeholder="e.g. 74" required />
 
       <label for="height">Height (CM) / उंची</label>
-      <input id="height" type="number" min="100" max="230" step="0.1" placeholder="e.g. 167" required />
+      <input id="height" type="number" min="100" max="230" step="0.1" placeholder="e.g. 166" required />
 
       <div class="row">
         <div>
@@ -162,21 +202,54 @@
 
       <label for="activity">Activity Level / क्रियाकलाप</label>
       <select id="activity" required>
-        <option value="1.2">Sedentary / बैठी (desk job)</option>
-        <option value="1.375">Light / हलकी (1–3 days)</option>
-        <option value="1.55" selected>Moderate / मध्यम (3–5 days)</option>
-        <option value="1.725">Heavy / जड (6–7 days)</option>
+        <option value="1.2">Sedentary / बैठी</option>
+        <option value="1.375">Light / हलकी</option>
+        <option value="1.55" selected>Moderate / मध्यम</option>
+        <option value="1.725">Heavy / जड</option>
       </select>
 
-      <button type="submit">Calculate / गणना करा</button>
+      <button type="submit">Calculate My Plan</button>
 
       <div class="result" id="result" aria-live="polite">
-        <div class="en">Your Daily Calories (from height, weight, age &amp; gender):</div>
-        <div class="kcal"><span id="kcal">0</span> Calories</div>
-        <p class="mr">मराठी: तुमच्या उंची, वजन, वय आणि लिंगानुसार रोज <span id="kcal-mr">0</span> Calories लागतात</p>
-        <div class="meta">
-          BMR (resting): <span id="bmr">0</span> Calories
+        <div class="bmi-tag" id="bmi-tag">BMI</div>
+        <div class="stats">
+          <div class="stat"><b id="bmi">0</b><span>BMI</span></div>
+          <div class="stat"><b id="goal-kg">0</b><span>Goal kg</span></div>
+          <div class="stat"><b id="goal-kcal">0</b><span>Goal kcal</span></div>
         </div>
+
+        <div class="goal-box">
+          <h2>🎯 Goal: reach <span id="goal-kg-2">0</span> kg</h2>
+          <p>
+            Healthy range for your height: <span id="range">0–0</span> kg.<br />
+            Eat <b id="start-kcal">0</b> kcal/day · Protein <b id="protein">0</b> g · Water 2.5–3 L
+          </p>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Goal</th><th>Calories/day</th><th>Protein/day</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Maintain weight</td>
+              <td id="m-kcal">0</td>
+              <td id="m-pro">0</td>
+            </tr>
+            <tr>
+              <td>Fat loss</td>
+              <td id="f-kcal">0</td>
+              <td id="f-pro">0</td>
+            </tr>
+            <tr>
+              <td>Faster fat loss</td>
+              <td id="ff-kcal">0</td>
+              <td id="ff-pro">0</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="mr" id="mr-line"></p>
       </div>
     </form>
 
@@ -187,9 +260,20 @@
   </div>
 
   <script>
-    function mifflinStJeor(weight, height, age, gender) {
+    function bmrOf(weight, height, age, gender) {
       var base = 10 * weight + 6.25 * height - 5 * age;
       return gender === "male" ? base + 5 : base - 161;
+    }
+
+    function bmiCategory(bmi) {
+      if (bmi < 18.5) return { en: "Underweight", mr: "कमी वजन", cls: "low" };
+      if (bmi < 25) return { en: "Healthy", mr: "सामान्य", cls: "ok" };
+      if (bmi < 30) return { en: "Overweight", mr: "जास्त वजन", cls: "high" };
+      return { en: "Obese", mr: "स्थूलता", cls: "high" };
+    }
+
+    function round10(n) {
+      return Math.round(n / 10) * 10;
     }
 
     document.getElementById("calc-form").addEventListener("submit", function (e) {
@@ -200,12 +284,51 @@
       var gender = document.getElementById("gender").value;
       var activity = parseFloat(document.getElementById("activity").value);
 
-      var bmr = mifflinStJeor(weight, height, age, gender);
-      var daily = Math.round(bmr * activity);
+      var hm = height / 100;
+      var bmi = weight / (hm * hm);
+      var healthyMin = 18.5 * hm * hm;
+      var healthyMax = 24.9 * hm * hm;
+      var goalWeight = weight;
+      if (bmi > 24.9) goalWeight = 24.5 * hm * hm;
+      if (bmi < 18.5) goalWeight = 20 * hm * hm;
 
-      document.getElementById("kcal").textContent = daily;
-      document.getElementById("kcal-mr").textContent = daily;
-      document.getElementById("bmr").textContent = Math.round(bmr);
+      var tdee = bmrOf(weight, height, age, gender) * activity;
+      var goalTdee = bmrOf(goalWeight, height, age, gender) * activity;
+      var cat = bmiCategory(bmi);
+
+      var proLow = Math.round(weight * 1.6);
+      var proHigh = Math.round(weight * 2.0);
+      var proGoal = Math.round(goalWeight * 1.8);
+      var proText = proLow + "–" + proHigh + " g";
+
+      var maintainL = round10(tdee - 200);
+      var maintainH = round10(tdee);
+      var fatL = round10(tdee - 550);
+      var fatH = round10(tdee - 300);
+      var fastL = Math.max(1400, round10(tdee - 750));
+      var fastH = round10(tdee - 500);
+      var startKcal = bmi > 24.9 ? round10((tdee + goalTdee) / 2 - 350) : round10(tdee);
+      var goalKcal = round10(goalTdee);
+
+      document.getElementById("bmi").textContent = bmi.toFixed(1);
+      document.getElementById("bmi-tag").textContent = "BMI " + bmi.toFixed(1) + " · " + cat.en + " / " + cat.mr;
+      document.getElementById("goal-kg").textContent = goalWeight.toFixed(0);
+      document.getElementById("goal-kg-2").textContent = goalWeight.toFixed(0);
+      document.getElementById("goal-kcal").textContent = startKcal;
+      document.getElementById("range").textContent = healthyMin.toFixed(0) + "–" + healthyMax.toFixed(0);
+      document.getElementById("start-kcal").textContent = startKcal;
+      document.getElementById("protein").textContent = proGoal;
+      document.getElementById("m-kcal").textContent = maintainL + "–" + maintainH;
+      document.getElementById("f-kcal").textContent = fatL + "–" + fatH;
+      document.getElementById("ff-kcal").textContent = fastL + "–" + fastH;
+      document.getElementById("m-pro").textContent = proText;
+      document.getElementById("f-pro").textContent = proText;
+      document.getElementById("ff-pro").textContent = proText;
+      document.getElementById("mr-line").textContent =
+        "मराठी: तुमचा BMI " + bmi.toFixed(1) + " आहे. लक्ष्य वजन " +
+        goalWeight.toFixed(0) + " kg. रोज " + startKcal + " Calories आणि " +
+        proGoal + "g प्रोटीन घ्या.";
+
       document.getElementById("result").classList.add("show");
     });
   </script>
