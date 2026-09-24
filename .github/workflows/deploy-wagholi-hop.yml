@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "wagholi-hop/**"
+      - "calorie-calculator.html"
       - ".github/workflows/deploy-wagholi-hop.yml"
   workflow_dispatch:
 
@@ -26,6 +27,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Add calorie calculator to site
+        run: cp calorie-calculator.html wagholi-hop/calorie-calculator.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
