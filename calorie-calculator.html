@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Calorie Calculator | The Amol Bankar</title>
+  <style>
+    :root {
+      --green: #1b8a4a;
+      --green-dark: #136b38;
+      --green-soft: #e8f7ee;
+      --text: #143322;
+      --muted: #4d6b58;
+      --card: #ffffff;
+      --bg: #f3faf6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: linear-gradient(180deg, #e8f7ee 0%, #f3faf6 40%, #fff 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 430px;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 1.45rem;
+      color: var(--green-dark);
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 18px 16px;
+      box-shadow: 0 8px 24px rgba(19, 107, 56, 0.08);
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.88rem;
+      margin: 12px 0 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 12px;
+      border: 1.5px solid #cfe8d7;
+      border-radius: 10px;
+      font-size: 1rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(27, 138, 74, 0.15);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 18px;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(180deg, var(--green), var(--green-dark));
+      cursor: pointer;
+    }
+
+    button:active { transform: scale(0.99); }
+
+    .result {
+      display: none;
+      margin-top: 16px;
+      background: var(--green-soft);
+      border: 1px solid #b7e2c6;
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .result.show { display: block; }
+
+    .kcal {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--green-dark);
+      line-height: 1.1;
+      margin: 6px 0 10px;
+    }
+
+    .en { font-size: 0.98rem; margin: 0 0 8px; }
+    .mr { font-size: 0.98rem; margin: 0; color: var(--green-dark); font-weight: 600; }
+    .meta { font-size: 0.82rem; color: var(--muted); margin-top: 10px; }
+
+    .disclaimer {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: #6a7d70;
+      text-align: center;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Free Calorie Calculator</h1>
+      <p>मोफत कॅलरी कॅल्क्युलेटर · 0.5kg वजन कमी</p>
+    </header>
+
+    <form class="card" id="calc-form">
+      <label for="weight">Weight (KG) / वजन</label>
+      <input id="weight" type="number" min="25" max="250" step="0.1" placeholder="e.g. 74" required />
+
+      <label for="height">Height (CM) / उंची</label>
+      <input id="height" type="number" min="100" max="230" step="0.1" placeholder="e.g. 167" required />
+
+      <div class="row">
+        <div>
+          <label for="age">Age / वय</label>
+          <input id="age" type="number" min="12" max="90" placeholder="e.g. 33" required />
+        </div>
+        <div>
+          <label for="gender">Gender / लिंग</label>
+          <select id="gender" required>
+            <option value="male">Male / पुरुष</option>
+            <option value="female">Female / स्त्री</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="activity">Activity Level / क्रियाकलाप</label>
+      <select id="activity" required>
+        <option value="1.2">Sedentary / बैठी (desk job)</option>
+        <option value="1.375">Light / हलकी (1–3 days)</option>
+        <option value="1.55" selected>Moderate / मध्यम (3–5 days)</option>
+        <option value="1.725">Heavy / जड (6–7 days)</option>
+      </select>
+
+      <button type="submit">Calculate / गणना करा</button>
+
+      <div class="result" id="result" aria-live="polite">
+        <div class="en">Your Daily Calories for 0.5kg Weight Loss:</div>
+        <div class="kcal"><span id="kcal">0</span> Calories</div>
+        <p class="mr">मराठी: वजन 0.5kg कमी करण्यासाठी रोज <span id="kcal-mr">0</span> Calories खा</p>
+        <div class="meta">
+          BMR: <span id="bmr">0</span> · Maintenance: <span id="tdee">0</span>
+        </div>
+      </div>
+    </form>
+
+    <p class="disclaimer">
+      This is general calculation. Consult doctor for medical advice.<br />
+      ही सामान्य गणना आहे. वैद्यकीय सल्ल्यासाठी डॉक्टरांचा सल्ला घ्या.
+    </p>
+  </div>
+
+  <script>
+    function mifflinStJeor(weight, height, age, gender) {
+      var base = 10 * weight + 6.25 * height - 5 * age;
+      return gender === "male" ? base + 5 : base - 161;
+    }
+
+    document.getElementById("calc-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var weight = parseFloat(document.getElementById("weight").value);
+      var height = parseFloat(document.getElementById("height").value);
+      var age = parseFloat(document.getElementById("age").value);
+      var gender = document.getElementById("gender").value;
+      var activity = parseFloat(document.getElementById("activity").value);
+
+      var bmr = mifflinStJeor(weight, height, age, gender);
+      var tdee = bmr * activity;
+      // 0.5 kg/week ≈ 3850 kcal/week ≈ 550 kcal/day
+      var target = Math.max(1200, Math.round(tdee - 550));
+
+      document.getElementById("kcal").textContent = target;
+      document.getElementById("kcal-mr").textContent = target;
+      document.getElementById("bmr").textContent = Math.round(bmr);
+      document.getElementById("tdee").textContent = Math.round(tdee);
+      document.getElementById("result").classList.add("show");
+    });
+  </script>
+</body>
+</html>
