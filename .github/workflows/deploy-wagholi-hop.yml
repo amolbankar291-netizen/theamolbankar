@@ -7,6 +7,7 @@ on:
       - "wagholi-hop/**"
       - "calorie-calculator.html"
       - "assets/calorie-bg.jpg"
+      - "looks-roadmap/**"
       - ".github/workflows/deploy-wagholi-hop.yml"
   workflow_dispatch:
 
@@ -31,9 +32,11 @@ jobs:
 
       - name: Add calorie calculator to site
         run: |
-          mkdir -p wagholi-hop/assets
+          mkdir -p wagholi-hop/assets wagholi-hop/looks_roadmap_assets
           cp calorie-calculator.html wagholi-hop/calorie-calculator.html
           cp assets/calorie-bg.jpg wagholi-hop/assets/calorie-bg.jpg
+          cp looks-roadmap/looks_transformation_roadmap.html wagholi-hop/looks-transformation-roadmap.html
+          cp looks-roadmap/looks_roadmap_assets/* wagholi-hop/looks_roadmap_assets/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
